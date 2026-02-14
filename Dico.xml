@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+    <filePath>
+        <path>/Users/olivierbessettemac/python-workspace/Dico.txt</path>
+    </filePath>
+    <types>
+        <RxSignal>
+            <suffixe1>In</suffixe1>
+            <suffixe2>St</suffixe2>
+            <suffixe3>Mrg</suffixe3>
+        </RxSignal>
+        <TxSignal>
+            <suffixe1>Out</suffixe1>
+        </TxSignal>
+    </types>
+</root>
