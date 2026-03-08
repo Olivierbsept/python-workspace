@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phrases>
+
+    <vie>
+        <phrase key="début du début du début">
+            Texte correspondant au début de la vie.
+        </phrase>
+
+        <phrase key="milieu du milieu du début">
+            Texte correspondant au milieu de la vie.
+        </phrase>
+        <phrase key="début du début de la fin">
+            Arrêter de perdre du temps.
+        </phrase>
+        <phrase key="fin de la fin de la fin">
+            Texte correspondant à la fin de la vie.
+        </phrase>
+    </vie>
+
+    <jour>
+        <phrase key="début du début du début">
+            Texte correspondant au début de la journée.
+        </phrase>
+
+        <phrase key="milieu du milieu du milieu">
+            Texte correspondant au milieu de la journée.
+        </phrase>
+        <phrase key="milieu de la fin de la fin">
+            Remballer.
+        </phrase>
+        <phrase key="fin de la fin de la fin">
+            Texte correspondant à la fin de la journée.
+        </phrase>
+    </jour>
+
+</phrases>
