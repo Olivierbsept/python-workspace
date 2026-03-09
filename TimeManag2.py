@@ -14,10 +14,15 @@ from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLa
 from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QPainter, QColor, QFont
 from PyQt5 import QtMultimedia
+from PyQt5 import Qt
 
 BAR_HEIGHT = 30
 BASE3_DIGITS = 3
 TEXT_MARGIN = 20
+#
+BLINK_DURATION = 5 * 60       # 5 minutes
+RED_DURATION = 5 * 60         # 5 minutes
+BLINK_INTERVAL = 500          # clignotement 0.5 s
 
 # --- Base 3 ---
 def to_base3_fixed(value, digits):
@@ -49,6 +54,8 @@ def value_to_phrase(value, minv, maxv):
     base3 = to_base3_fixed(intval, BASE3_DIGITS)
     return build_phrase(base3)
 
+
+
 # --- Barre graphique ---
 class BarWidget(QWidget):
     def __init__(self, minv, maxv):
@@ -59,13 +66,53 @@ class BarWidget(QWidget):
         self.phrase = ""
         self.last_phrase = ""
         self.setMinimumHeight(BAR_HEIGHT + 2*TEXT_MARGIN)
+        
+        #
+        self.blink = False
+        self.red = False
+        self.visible = True
+        
+        self.blink_timer = QTimer()
+        self.blink_timer.timeout.connect(self.toggle_visible)
+        #
 
+    #def set_value(self, value):
+    #    self.value = value
+    #    new_phrase = value_to_phrase(value, self.minv, self.maxv)
+    #    if new_phrase != self.last_phrase:
+    #        QtMultimedia.QSound.play("/System/Library/Sounds/Glass.aiff")  # beep
+    #        self.last_phrase = new_phrase
+    #    self.phrase = new_phrase
+    #    self.update()
+    #
+    def stop_blink(self):
+        self.blink = False
+        self.visible = True
+        self.blink_timer.stop()
+    
+    def stop_red(self):
+        self.red = False
+        self.update()
+        
     def set_value(self, value):
         self.value = value
         new_phrase = value_to_phrase(value, self.minv, self.maxv)
-        if new_phrase != self.last_phrase:
-            QtMultimedia.QSound.play("/System/Library/Sounds/Glass.aiff")  # beep
+    
+        if new_phrase != self.last_phrase and self.last_phrase:
+            QtMultimedia.QSound.play("/System/Library/Sounds/Glass.aiff")
             self.last_phrase = new_phrase
+            self.red = True
+            QTimer.singleShot(RED_DURATION * 1000, self.stop_red)
+    
+        seconds_to_change = self.compute_phase()
+    
+        if seconds_to_change < BLINK_DURATION:
+            if not self.blink_timer.isActive():
+                self.blink = True
+                self.blink_timer.start(BLINK_INTERVAL)
+        else:
+            self.stop_blink()
+    
         self.phrase = new_phrase
         self.update()
 
@@ -93,7 +140,31 @@ class BarWidget(QWidget):
         painter.drawText(m2-10, TEXT_MARGIN-5, "DF")
 
         # phrase sous la barre
-        painter.drawText(5, TEXT_MARGIN + BAR_HEIGHT + 15, self.phrase)
+        #painter.drawText(5, TEXT_MARGIN + BAR_HEIGHT + 15, self.phrase)
+        # phrase sous la barre
+        if self.visible:
+            if self.red:
+                painter.setPen(QColor(220,0,0))
+            else:
+                painter.setPen(QColor(0,0,0))
+        
+            painter.drawText(5, TEXT_MARGIN + BAR_HEIGHT + 15, self.phrase)
+
+#
+    def toggle_visible(self):
+        self.visible = not self.visible
+        self.update()
+        
+    def compute_phase(self):
+        total = self.maxv - self.minv
+        segment = total / (3**BASE3_DIGITS)
+    
+        pos = (self.value - self.minv) / segment
+        next_boundary = (math.floor(pos) + 1) * segment + self.minv
+    
+        seconds_to_change = (next_boundary - self.value) * 3600  # approx
+        return seconds_to_change
+#
 
 # --- Fenêtre principale ---
 class Window(QWidget):
@@ -107,7 +178,7 @@ class Window(QWidget):
         # Layout horizontal
         layout = QHBoxLayout()
         self.setLayout(layout)
-
+        
         # Panel gauche
         self.left_panel = QVBoxLayout()
         self.vie_bar = BarWidget(0,79)
@@ -136,7 +207,7 @@ class Window(QWidget):
         self.right_panel.addWidget(self.jour_text)
         
         layout.addLayout(self.right_panel, 1)
-
+        
         self.resize(800, 300)
 
         # Valeurs initiales
@@ -147,7 +218,7 @@ class Window(QWidget):
         timer = QTimer(self)
         timer.timeout.connect(self.update_jour)
         timer.start(1000)
-
+         
     def update_jour(self):
     
         now = datetime.datetime.now()
