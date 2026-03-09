@@ -10,7 +10,7 @@ import sys
 import math
 import datetime
 import xml.etree.ElementTree as ET
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame,  QPushButton
 from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QPainter, QColor, QFont
 from PyQt5 import QtMultimedia
@@ -156,6 +156,92 @@ class BarWidget(QWidget):
         return seconds_to_change
 #
 
+class ActionBarWidget(QWidget):
+    def __init__(self, duration=30*60):
+        super().__init__()
+
+        self.duration = duration
+        self.elapsed = 0
+
+        self.running = False
+        self.paused = False
+
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_time)
+
+        self.setMinimumHeight(BAR_HEIGHT + 2*TEXT_MARGIN)
+
+    def start(self):
+
+        if not self.running:
+            self.running = True
+            self.paused = False
+            self.timer.start(1000)
+
+    def pause(self):
+
+        if not self.running:
+            return
+
+        if self.paused:
+            self.timer.start(1000)
+            self.paused = False
+        else:
+            self.timer.stop()
+            self.paused = True
+
+    def stop(self):
+
+        self.running = False
+        self.paused = False
+        self.timer.stop()
+
+        self.elapsed = 0
+        self.update()
+
+    def update_time(self):
+
+        if self.running and not self.paused:
+
+            self.elapsed += 1
+
+            if self.elapsed >= self.duration:
+                self.stop()
+
+            self.update()
+
+    def paintEvent(self, event):
+
+        painter = QPainter(self)
+
+        width = self.width()
+
+        zone = int(width * (6*60) / self.duration)
+
+        # fond
+        painter.setBrush(QColor(230,230,230))
+        painter.drawRect(0, TEXT_MARGIN, width, BAR_HEIGHT)
+
+        # zone début
+        painter.setBrush(QColor(200,255,200))
+        painter.drawRect(0, TEXT_MARGIN, zone, BAR_HEIGHT)
+
+        # zone fin
+        painter.setBrush(QColor(255,200,200))
+        painter.drawRect(width-zone, TEXT_MARGIN, zone, BAR_HEIGHT)
+
+        # progression bleue
+        if self.elapsed > 0:
+
+            pos = int(self.elapsed/self.duration * width)
+
+            painter.setBrush(QColor(50,120,220))
+            painter.drawRect(0, TEXT_MARGIN, pos, BAR_HEIGHT)
+
+        painter.setPen(QColor(0,0,0))
+        painter.drawText(5, TEXT_MARGIN-5, "6 min")
+        painter.drawText(width-50, TEXT_MARGIN-5, "6 min")
+
 # --- Fenêtre principale ---
 class Window(QWidget):
     def __init__(self):
@@ -165,7 +251,42 @@ class Window(QWidget):
         self.xml_dict = {}
         self.load_xml("phrases.xml")
 
+        #
+        self.action_bar = ActionBarWidget()
+        titre_action = QLabel("Action")
+        titre_action.setAlignment(Qt.AlignCenter)
+       
+        buttons_layout = QHBoxLayout()
+        
+        self.start_btn = QPushButton("▶")
+        self.pause_btn = QPushButton("⏸")
+        self.stop_btn = QPushButton("■")
+        
+        for b in [self.start_btn, self.pause_btn, self.stop_btn]:
+            b.setFixedSize(50,50)
+            b.setStyleSheet("""
+                QPushButton {
+                    border-radius:25px;
+                    font-size:18px;
+                }
+            """)
+        
+        self.start_btn.setStyleSheet("""
+            QPushButton {
+                background-color:#4CAF50;
+                border-radius:25px;
+                font-size:18px;
+                color:white;
+            }
+        """)
 
+        buttons_layout.addWidget(self.start_btn)
+        buttons_layout.addWidget(self.pause_btn)
+        buttons_layout.addWidget(self.stop_btn)
+        
+        self.start_btn.clicked.connect(self.action_bar.start)
+        self.pause_btn.clicked.connect(self.action_bar.pause)
+        self.stop_btn.clicked.connect(self.action_bar.stop)
         
         # Layout vertical principal
         main_layout = QVBoxLayout()
@@ -218,6 +339,18 @@ class Window(QWidget):
         self.right_panel.addWidget(self.vie_text)
         self.right_panel.addWidget(titre_jour_text)
         self.right_panel.addWidget(self.jour_text)
+
+        titre_action_text = QLabel("Action")
+        titre_action_text.setAlignment(Qt.AlignCenter)        
+        self.action_text = QLabel("Texte action")
+        self.action_text.setWordWrap(True)
+        self.action_text.setFrameStyle(QFrame.Panel | QFrame.Sunken)
+        self.right_panel.addWidget(titre_action_text)
+        self.right_panel.addWidget(self.action_text)
+        #
+        self.left_panel.addWidget(titre_action)
+        self.left_panel.addWidget(self.action_bar)
+        self.left_panel.addLayout(buttons_layout)
         
         layout.addLayout(self.right_panel, 1)
         
