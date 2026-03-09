@@ -171,6 +171,8 @@ class ActionBarWidget(QWidget):
 
         self.setMinimumHeight(BAR_HEIGHT + 2*TEXT_MARGIN)
 
+        self.phrase = ""
+        self.last_phrase = ""
     def start(self):
 
         if not self.running:
@@ -200,15 +202,32 @@ class ActionBarWidget(QWidget):
         self.update()
 
     def update_time(self):
-
+    
         if self.running and not self.paused:
-
+    
             self.elapsed += 1
-
+    
+            minutes = self.elapsed / 60
+            max_minutes = self.duration / 60
+    
+            self.phrase = value_to_phrase(minutes, 0, max_minutes)
+    
             if self.elapsed >= self.duration:
                 self.stop()
-
+    
             self.update()
+
+    def stop(self):
+    
+        self.running = False
+        self.paused = False
+        self.timer.stop()
+    
+        self.elapsed = 0
+        self.phrase = ""
+    
+        self.update()
+
 
     def paintEvent(self, event):
 
@@ -241,6 +260,12 @@ class ActionBarWidget(QWidget):
         painter.setPen(QColor(0,0,0))
         painter.drawText(5, TEXT_MARGIN-5, "6 min")
         painter.drawText(width-50, TEXT_MARGIN-5, "6 min")
+        
+        painter.setPen(QColor(0,0,0))
+        painter.setFont(QFont("Arial",10))
+        
+        if self.phrase:
+            painter.drawText(5, TEXT_MARGIN + BAR_HEIGHT + 15, self.phrase)
 
 # --- Fenêtre principale ---
 class Window(QWidget):
@@ -253,7 +278,7 @@ class Window(QWidget):
 
         #
         self.action_bar = ActionBarWidget()
-        titre_action = QLabel("Action")
+        titre_action = QLabel("Action (1 h)")
         titre_action.setAlignment(Qt.AlignCenter)
        
         buttons_layout = QHBoxLayout()
@@ -266,20 +291,23 @@ class Window(QWidget):
             b.setFixedSize(50,50)
             b.setStyleSheet("""
                 QPushButton {
-                    border-radius:25px;
-                    font-size:18px;
+                    background: transparent;
+                    border: none;
+                    font-size:22px;
                 }
             """)
         
         self.start_btn.setStyleSheet("""
             QPushButton {
-                background-color:#4CAF50;
-                border-radius:25px;
-                font-size:18px;
-                color:white;
+                background: transparent;
+                border: none;
+                font-size:22px;
+                color:#2ecc71;
             }
         """)
-
+        self.start_btn.setStyleSheet("color:#2ecc71; border:none; font-size:22px;")
+        self.pause_btn.setStyleSheet("color:#f39c12; border:none; font-size:22px;")
+        self.stop_btn.setStyleSheet("color:#000000; border:none; font-size:22px;")
         buttons_layout.addWidget(self.start_btn)
         buttons_layout.addWidget(self.pause_btn)
         buttons_layout.addWidget(self.stop_btn)
@@ -298,67 +326,99 @@ class Window(QWidget):
         title.setStyleSheet("font-size: 18px; font-weight: bold; margin: 10px;")
         main_layout.addWidget(title)
         
-        # Layout horizontal pour les deux panels
-        layout = QHBoxLayout()
+        layout = QVBoxLayout()
         main_layout.addLayout(layout)
-        
-        # Panel gauche
+
+        ##
         self.left_panel = QVBoxLayout()
         self.vie_bar = BarWidget(0,79)
         self.jour_bar = BarWidget(6,24)
+        row_vie = QHBoxLayout()
         
+        left_vie = QVBoxLayout()
         titre_vie = QLabel("Vie (0 → 79 ans)")
         titre_vie.setAlignment(Qt.AlignCenter)
-        titre_jour = QLabel("Journée (6h → 24h)")
-        titre_jour.setAlignment(Qt.AlignCenter)
+        left_vie.addWidget(titre_vie)
+        left_vie.addWidget(self.vie_bar)
         
-        self.left_panel.addWidget(titre_vie)
-        self.left_panel.addWidget(self.vie_bar)
-        self.left_panel.addWidget(titre_jour)
-        self.left_panel.addWidget(self.jour_bar)
-        
-        layout.addLayout(self.left_panel, 1)
-        
-        # Panel droit
-        self.right_panel = QVBoxLayout()
-        
+        right_vie = QVBoxLayout()
         titre_vie_text = QLabel("Vie")
         titre_vie_text.setAlignment(Qt.AlignCenter)
-        titre_jour_text = QLabel("Journée")
-        titre_jour_text.setAlignment(Qt.AlignCenter)
         
         self.vie_text = QLabel("Texte vie")
         self.vie_text.setWordWrap(True)
         self.vie_text.setFrameStyle(QFrame.Panel | QFrame.Sunken)
         
+        right_vie.addWidget(titre_vie_text)
+        right_vie.addWidget(self.vie_text)
+        
+        row_vie.addLayout(left_vie,1)
+        row_vie.addLayout(right_vie,1)
+        
+        layout.addLayout(row_vie)
+        
+        row_jour = QHBoxLayout()
+
+        left_jour = QVBoxLayout()
+        titre_jour = QLabel("Journée (6h → 24h)")
+        titre_jour.setAlignment(Qt.AlignCenter)
+        left_jour.addWidget(titre_jour)
+        left_jour.addWidget(self.jour_bar)
+        
+        right_jour = QVBoxLayout()
+        titre_jour_text = QLabel("Journée")
+        titre_jour_text.setAlignment(Qt.AlignCenter)
+        
         self.jour_text = QLabel("Texte journée")
         self.jour_text.setWordWrap(True)
         self.jour_text.setFrameStyle(QFrame.Panel | QFrame.Sunken)
         
-        self.right_panel.addWidget(titre_vie_text)
-        self.right_panel.addWidget(self.vie_text)
-        self.right_panel.addWidget(titre_jour_text)
-        self.right_panel.addWidget(self.jour_text)
-
+        right_jour.addWidget(titre_jour_text)
+        right_jour.addWidget(self.jour_text)
+        
+        row_jour.addLayout(left_jour,1)
+        row_jour.addLayout(right_jour,1)
+        
+        layout.addLayout(row_jour)
+        
+        # ----- Ligne Action : barre + texte -----
+        
+        row_action = QHBoxLayout()
+        
+        left_action_bar = QVBoxLayout()
+        titre_action = QLabel("Action (1 h)")
+        titre_action.setAlignment(Qt.AlignCenter)
+        
+        left_action_bar.addWidget(titre_action)
+        left_action_bar.addWidget(self.action_bar)
+        
+        right_action = QVBoxLayout()
         titre_action_text = QLabel("Action")
-        titre_action_text.setAlignment(Qt.AlignCenter)        
+        titre_action_text.setAlignment(Qt.AlignCenter)
+        
         self.action_text = QLabel("Texte action")
         self.action_text.setWordWrap(True)
         self.action_text.setFrameStyle(QFrame.Panel | QFrame.Sunken)
-        self.right_panel.addWidget(titre_action_text)
-        self.right_panel.addWidget(self.action_text)
-        #
-        self.left_panel.addWidget(titre_action)
-        self.left_panel.addWidget(self.action_bar)
-        self.left_panel.addLayout(buttons_layout)
         
-        layout.addLayout(self.right_panel, 1)
+        right_action.addWidget(titre_action_text)
+        right_action.addWidget(self.action_text)
         
-        self.resize(800, 300)
+        row_action.addLayout(left_action_bar,1)
+        row_action.addLayout(right_action,1)
+        
+        layout.addLayout(row_action)
+        
+        buttons_row = QHBoxLayout()
+        buttons_row.addStretch()
+        buttons_row.addLayout(buttons_layout)
+        buttons_row.addStretch()
+        
+        layout.addLayout(buttons_row)
         
         # Valeurs initiales
         self.vie_bar.set_value(56)
         self.update_jour()
+        self.resize(800, 300)
         
         # Timer
         timer = QTimer(self)
@@ -366,19 +426,25 @@ class Window(QWidget):
         timer.start(1000)
          
     def update_jour(self):
-    
+        
         now = datetime.datetime.now()
         hour = now.hour + now.minute/60.0
         self.jour_bar.set_value(hour)
     
+        # Vie
         vie_phrase = self.vie_bar.phrase
-        jour_phrase = self.jour_bar.phrase
-    
         vie_text = self.vie_dict.get(vie_phrase, "Pas de texte vie")
-        jour_text = self.jour_dict.get(jour_phrase, "Pas de texte journée")
-    
         self.vie_text.setText(vie_text)
+    
+        # Journée
+        jour_phrase = self.jour_bar.phrase
+        jour_text = self.jour_dict.get(jour_phrase, "Pas de texte journée")
         self.jour_text.setText(jour_text)
+    
+        # Action
+        action_phrase = self.action_bar.phrase
+        action_text = self.action_dict.get(action_phrase, "Pas de texte action")
+        self.action_text.setText(action_text)
 
     def load_xml(self, filename):
     
@@ -399,6 +465,14 @@ class Window(QWidget):
             key = p.get("key")
             text = p.text.strip()
             self.jour_dict[key] = text
+            
+        action = root.find("action")
+        self.action_dict = {}
+        
+        for p in action.findall("phrase"):
+            key = p.get("key")
+            text = p.text.strip()
+            self.action_dict[key] = text
 
 # --- Lancement ---
 app = QApplication(sys.argv)

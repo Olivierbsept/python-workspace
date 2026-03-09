@@ -32,5 +32,13 @@
             Texte correspondant à la fin de la journée.
         </phrase>
     </jour>
+    
+    <action>
+        <phrase key="début du début du début">
+            Texte correspondant au début de la journée.
+        </phrase>
+        <phrase key="milieu du début">Entrer dans le rythme.</phrase>
+        <phrase key="fin du début">Concentration maximale.</phrase>
+    </action>
 
 </phrases>
