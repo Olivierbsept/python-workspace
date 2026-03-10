@@ -12,7 +12,7 @@ import datetime
 import xml.etree.ElementTree as ET
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame,  QPushButton
 from PyQt5.QtCore import QTimer
-from PyQt5.QtGui import QPainter, QColor, QFont
+from PyQt5.QtGui import QPainter, QColor, QFont, QPen
 from PyQt5 import QtMultimedia
 #from PyQt5 import Qt
 from PyQt5.QtCore import Qt
@@ -56,105 +56,217 @@ def value_to_phrase(value, minv, maxv):
     return build_phrase(base3)
 
 
-
-# --- Barre graphique ---
 class BarWidget(QWidget):
+
     def __init__(self, minv, maxv):
         super().__init__()
+
         self.value = 0
         self.minv = minv
         self.maxv = maxv
+
         self.phrase = ""
         self.last_phrase = ""
+
         self.setMinimumHeight(BAR_HEIGHT + 2*TEXT_MARGIN)
-        
+
         self.blink = False
         self.red = False
         self.visible = True
-        
+
         self.blink_timer = QTimer()
         self.blink_timer.timeout.connect(self.toggle_visible)
 
-    def stop_blink(self):
-        self.blink = False
-        self.visible = True
-        self.blink_timer.stop()
-    
-    def stop_red(self):
-        self.red = False
-        self.update()
+        self.fd_fraction = 0.33
+        self.df_fraction = 0.66
         
+        self.drag_fd = False
+        self.drag_df = False
+
+        self.dragging_fd = False
+        self.hover_fd = False
+
+
+    # ---------- gestion valeur ----------
+
     def set_value(self, value):
+
         self.value = value
+
         new_phrase = value_to_phrase(value, self.minv, self.maxv)
-    
+
         if new_phrase != self.last_phrase and self.last_phrase:
             QtMultimedia.QSound.play("/System/Library/Sounds/Glass.aiff")
             self.last_phrase = new_phrase
             self.red = True
             QTimer.singleShot(RED_DURATION * 1000, self.stop_red)
-    
+
         seconds_to_change = self.compute_phase()
-    
+
         if seconds_to_change < BLINK_DURATION:
             if not self.blink_timer.isActive():
                 self.blink = True
                 self.blink_timer.start(BLINK_INTERVAL)
         else:
             self.stop_blink()
-    
+
         self.phrase = new_phrase
+
         self.update()
 
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        width = self.width()
-        pos = int((self.value - self.minv)/(self.maxv - self.minv) * width)
-        m1 = width // 3
-        m2 = 2 * width // 3
 
-        # fond barre
+    # ---------- dessin ----------
+
+    def paintEvent(self, event):
+
+        painter = QPainter(self)
+
+        width = self.width()
+
+        if self.maxv != self.minv:
+            pos = int((self.value-self.minv)/(self.maxv-self.minv)*width)
+        else:
+            pos = 0
+
+        m1 = int(width*self.fd_fraction)
+        m2 = int(width*self.df_fraction)
+
+        # fond
         painter.setBrush(QColor(230,230,230))
         painter.drawRect(0, TEXT_MARGIN, width, BAR_HEIGHT)
 
-        # barre remplie
+
+        # progression
         painter.setBrush(QColor(50,120,220))
         painter.drawRect(0, TEXT_MARGIN, pos, BAR_HEIGHT)
 
-        painter.setPen(QColor(0,0,0))
-        font = QFont("Arial", 10)
-        painter.setFont(font)
 
-        # Marques FD / DF
+        painter.setPen(QColor(0,0,0))
+        painter.setFont(QFont("Arial",10))
+
+        # marques
         painter.drawText(m1-10, TEXT_MARGIN-5, "FD")
         painter.drawText(m2-10, TEXT_MARGIN-5, "DF")
 
-        # phrase sous la barre
-        #painter.drawText(5, TEXT_MARGIN + BAR_HEIGHT + 15, self.phrase)
-        # phrase sous la barre
+        # ligne pendant déplacement
+        if self.dragging_fd:
+            painter.setPen(QColor(200,0,0))
+            painter.drawLine(m1, TEXT_MARGIN, m1, TEXT_MARGIN+BAR_HEIGHT)
+
+
+        # phrase
         if self.visible:
+
             if self.red:
                 painter.setPen(QColor(220,0,0))
             else:
                 painter.setPen(QColor(0,0,0))
-        
-            painter.drawText(5, TEXT_MARGIN + BAR_HEIGHT + 15, self.phrase)
 
-#
+            painter.drawText(5,
+                             TEXT_MARGIN+BAR_HEIGHT+15,
+                             self.phrase)
+
+
+        # fraction affichée
+        painter.setPen(QColor(120,120,120))
+        
+        painter.drawText(m1-15,
+                         TEXT_MARGIN+BAR_HEIGHT+30,
+                         f"{self.fd_fraction:.2f}")
+        
+        painter.drawText(m2-15,
+                         TEXT_MARGIN+BAR_HEIGHT+45,
+                         f"{self.df_fraction:.2f}")
+
+        # positions des limites
+        m1 = int(width * self.fd_fraction)
+        m2 = int(width * self.df_fraction)
+        
+        # stylo visible
+        pen = QPen(QColor(0,0,0))
+        pen.setWidth(3)
+        painter.setPen(pen)
+        
+        # traits verticaux FD et DF
+        painter.drawLine(m1, TEXT_MARGIN, m1, TEXT_MARGIN + BAR_HEIGHT)
+        painter.drawLine(m2, TEXT_MARGIN, m2, TEXT_MARGIN + BAR_HEIGHT)
+
+    # ---------- souris ----------
+
+    def mousePressEvent(self, event):
+    
+        width = self.width()
+    
+        m1 = int(width*self.fd_fraction)
+        m2 = int(width*self.df_fraction)
+    
+        if abs(event.x()-m1) < 10:
+            self.drag_fd = True
+    
+        elif abs(event.x()-m2) < 10:
+            self.drag_df = True
+
+    def mouseMoveEvent(self, event):
+    
+        width = self.width()
+    
+        x = event.x()/width
+    
+        if self.drag_fd:
+    
+            self.fd_fraction = max(0.01, min(self.df_fraction-0.02, x))
+    
+            self.update()
+    
+        elif self.drag_df:
+    
+            self.df_fraction = min(0.99, max(self.fd_fraction+0.02, x))
+    
+            self.update()
+  
+    def mouseReleaseEvent(self, event):
+    
+        self.drag_fd = False
+        self.drag_df = False
+
+    # ---------- utilitaires ----------
+
+    def stop_blink(self):
+
+        self.blink = False
+        self.visible = True
+        self.blink_timer.stop()
+
+
+    def stop_red(self):
+
+        self.red = False
+        self.update()
+
+
     def toggle_visible(self):
+
         self.visible = not self.visible
         self.update()
-        
+
+
     def compute_phase(self):
-        total = self.maxv - self.minv
-        segment = total / (3**BASE3_DIGITS)
-    
-        pos = (self.value - self.minv) / segment
-        next_boundary = (math.floor(pos) + 1) * segment + self.minv
-    
-        seconds_to_change = (next_boundary - self.value) * 3600  # approx
+
+        total = self.maxv-self.minv
+
+        segment = total/(3**BASE3_DIGITS)
+
+        pos = (self.value-self.minv)/segment
+
+        next_boundary = (math.floor(pos)+1)*segment+self.minv
+
+        seconds_to_change = (next_boundary-self.value)*3600
+
         return seconds_to_change
-#
+    
+    def set_start_fraction(self, f):
+        self.start_fraction = max(0.0, min(0.5, f))
+        self.update()
 
 class ActionBarWidget(QWidget):
     def __init__(self, duration=30*60):
@@ -191,15 +303,6 @@ class ActionBarWidget(QWidget):
         else:
             self.timer.stop()
             self.paused = True
-
-    def stop(self):
-
-        self.running = False
-        self.paused = False
-        self.timer.stop()
-
-        self.elapsed = 0
-        self.update()
 
     def update_time(self):
     
@@ -278,8 +381,6 @@ class Window(QWidget):
 
         #
         self.action_bar = ActionBarWidget()
-        titre_action = QLabel("Action (1 h)")
-        titre_action.setAlignment(Qt.AlignCenter)
        
         buttons_layout = QHBoxLayout()
         
@@ -297,14 +398,6 @@ class Window(QWidget):
                 }
             """)
         
-        self.start_btn.setStyleSheet("""
-            QPushButton {
-                background: transparent;
-                border: none;
-                font-size:22px;
-                color:#2ecc71;
-            }
-        """)
         self.start_btn.setStyleSheet("color:#2ecc71; border:none; font-size:22px;")
         self.pause_btn.setStyleSheet("color:#f39c12; border:none; font-size:22px;")
         self.stop_btn.setStyleSheet("color:#000000; border:none; font-size:22px;")
@@ -332,6 +425,7 @@ class Window(QWidget):
         ##
         self.left_panel = QVBoxLayout()
         self.vie_bar = BarWidget(0,79)
+        self.vie_bar.set_start_fraction(0.25)
         self.jour_bar = BarWidget(6,24)
         row_vie = QHBoxLayout()
         
@@ -424,7 +518,53 @@ class Window(QWidget):
         timer = QTimer(self)
         timer.timeout.connect(self.update_jour)
         timer.start(1000)
-         
+        
+        self.load_bar_config()
+    
+    def load_bar_config(self):
+
+        try:
+    
+            tree = ET.parse("config_barres.xml")
+            root = tree.getroot()
+    
+            vie = root.find("vie")
+    
+            if vie is not None:
+                self.vie_bar.fd_fraction = float(vie.get("fd",0.33))
+                self.vie_bar.df_fraction = float(vie.get("df",0.66))
+    
+            jour = root.find("jour")
+    
+            if jour is not None:
+                self.jour_bar.fd_fraction = float(jour.get("fd",0.33))
+                self.jour_bar.df_fraction = float(jour.get("df",0.66))
+    
+        except:
+            pass    
+    
+    def save_bar_config(self):
+    
+        root = ET.Element("config")
+    
+        vie = ET.SubElement(root,"vie")
+        vie.set("fd",str(self.vie_bar.fd_fraction))
+        vie.set("df",str(self.vie_bar.df_fraction))
+    
+        jour = ET.SubElement(root,"jour")
+        jour.set("fd",str(self.jour_bar.fd_fraction))
+        jour.set("df",str(self.jour_bar.df_fraction))
+    
+        tree = ET.ElementTree(root)
+    
+        tree.write("config_barres.xml")
+        
+    def closeEvent(self,event):
+
+        self.save_bar_config()
+    
+        event.accept()
+    
     def update_jour(self):
         
         now = datetime.datetime.now()
@@ -467,7 +607,15 @@ class Window(QWidget):
             self.jour_dict[key] = text
             
         action = root.find("action")
+        
         self.action_dict = {}
+        
+        if action is not None:
+            for p in action.findall("phrase"):
+                key = p.get("key")
+                text = p.text.strip()
+                self.action_dict[key] = text
+                self.action_dict = {}
         
         for p in action.findall("phrase"):
             key = p.get("key")
