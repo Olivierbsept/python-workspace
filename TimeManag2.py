@@ -285,6 +285,13 @@ class ActionBarWidget(QWidget):
 
         self.phrase = ""
         self.last_phrase = ""
+        
+        self.fd_fraction = 0.20
+        self.df_fraction = 0.80
+        
+        self.drag_fd = False
+        self.drag_df = False
+        
     def start(self):
 
         if not self.running:
@@ -338,7 +345,8 @@ class ActionBarWidget(QWidget):
 
         width = self.width()
 
-        zone = int(width * (6*60) / self.duration)
+        m1 = int(width * self.fd_fraction)
+        m2 = int(width * self.df_fraction)
 
         # fond
         painter.setBrush(QColor(230,230,230))
@@ -346,17 +354,17 @@ class ActionBarWidget(QWidget):
 
         # zone début
         painter.setBrush(QColor(200,255,200))
-        painter.drawRect(0, TEXT_MARGIN, zone, BAR_HEIGHT)
-
+        painter.drawRect(0, TEXT_MARGIN, m1, BAR_HEIGHT)
+        
         # zone fin
         painter.setBrush(QColor(255,200,200))
-        painter.drawRect(width-zone, TEXT_MARGIN, zone, BAR_HEIGHT)
+        painter.drawRect(m2, TEXT_MARGIN, width-m2, BAR_HEIGHT)
 
         # progression bleue
         if self.elapsed > 0:
-
+        
             pos = int(self.elapsed/self.duration * width)
-
+        
             painter.setBrush(QColor(50,120,220))
             painter.drawRect(0, TEXT_MARGIN, pos, BAR_HEIGHT)
 
@@ -369,6 +377,46 @@ class ActionBarWidget(QWidget):
         
         if self.phrase:
             painter.drawText(5, TEXT_MARGIN + BAR_HEIGHT + 15, self.phrase)
+            
+        pen = QPen(QColor(0,0,0))
+        pen.setWidth(3)
+        painter.setPen(pen)
+
+        painter.drawLine(m1, TEXT_MARGIN, m1, TEXT_MARGIN + BAR_HEIGHT)
+        painter.drawLine(m2, TEXT_MARGIN, m2, TEXT_MARGIN + BAR_HEIGHT)
+        
+    def mousePressEvent(self,event):
+    
+        width = self.width()
+    
+        m1 = int(width*self.fd_fraction)
+        m2 = int(width*self.df_fraction)
+    
+        if abs(event.x()-m1) < 10:
+            self.drag_fd = True
+    
+        elif abs(event.x()-m2) < 10:
+            self.drag_df = True
+            
+    def mouseMoveEvent(self,event):
+
+        width = self.width()
+        x = event.x()/width
+    
+        if self.drag_fd:
+    
+            self.fd_fraction = max(0.01,min(self.df_fraction-0.02,x))
+            self.update()
+    
+        elif self.drag_df:
+    
+            self.df_fraction = min(0.99,max(self.fd_fraction+0.02,x))
+            self.update() 
+            
+    def mouseReleaseEvent(self,event):
+
+        self.drag_fd = False
+        self.drag_df = False     
 
 # --- Fenêtre principale ---
 class Window(QWidget):
@@ -404,10 +452,7 @@ class Window(QWidget):
         buttons_layout.addWidget(self.start_btn)
         buttons_layout.addWidget(self.pause_btn)
         buttons_layout.addWidget(self.stop_btn)
-        
-        self.start_btn.clicked.connect(self.action_bar.start)
-        self.pause_btn.clicked.connect(self.action_bar.pause)
-        self.stop_btn.clicked.connect(self.action_bar.stop)
+   
         
         # Layout vertical principal
         main_layout = QVBoxLayout()
@@ -427,6 +472,12 @@ class Window(QWidget):
         self.vie_bar = BarWidget(0,79)
         self.vie_bar.set_start_fraction(0.25)
         self.jour_bar = BarWidget(6,24)
+        self.action_bar = ActionBarWidget()
+     
+        self.start_btn.clicked.connect(self.action_bar.start)
+        self.pause_btn.clicked.connect(self.action_bar.pause)
+        self.stop_btn.clicked.connect(self.action_bar.stop)
+        
         row_vie = QHBoxLayout()
         
         left_vie = QVBoxLayout()
@@ -539,6 +590,11 @@ class Window(QWidget):
             if jour is not None:
                 self.jour_bar.fd_fraction = float(jour.get("fd",0.33))
                 self.jour_bar.df_fraction = float(jour.get("df",0.66))
+
+            action = root.find("action")
+            if action is not None:
+                self.action_bar.fd_fraction = float(action.get("fd",0.33))
+                self.action_bar.df_fraction = float(action.get("df",0.66))
     
         except:
             pass    
@@ -554,6 +610,10 @@ class Window(QWidget):
         jour = ET.SubElement(root,"jour")
         jour.set("fd",str(self.jour_bar.fd_fraction))
         jour.set("df",str(self.jour_bar.df_fraction))
+        
+        action = ET.SubElement(root,"action")
+        action.set("fd",str(self.action_bar.fd_fraction))
+        action.set("df",str(self.action_bar.df_fraction))
     
         tree = ET.ElementTree(root)
     
@@ -615,7 +675,6 @@ class Window(QWidget):
                 key = p.get("key")
                 text = p.text.strip()
                 self.action_dict[key] = text
-                self.action_dict = {}
         
         for p in action.findall("phrase"):
             key = p.get("key")
