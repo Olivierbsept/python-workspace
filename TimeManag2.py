@@ -94,8 +94,7 @@ class BarWidget(QWidget):
         self.value = value
 
         new_phrase = value_to_phrase(value, self.minv, self.maxv)
-<<<<<<< HEAD
-    
+
         if new_phrase != self.last_phrase:
             if self.last_phrase != "":
                 QtMultimedia.QSound.play("/System/Library/Sounds/Glass.aiff")
@@ -104,7 +103,7 @@ class BarWidget(QWidget):
         
             self.last_phrase = new_phrase
             
-=======
+
 
         if new_phrase != self.last_phrase and self.last_phrase:
             QtMultimedia.QSound.play("/System/Library/Sounds/Glass.aiff")
@@ -112,7 +111,6 @@ class BarWidget(QWidget):
             self.red = True
             QTimer.singleShot(RED_DURATION * 1000, self.stop_red)
 
->>>>>>> 6237118801c27847f42cdea938303b4d2358d858
         seconds_to_change = self.compute_phase()
 
         if seconds_to_change < BLINK_DURATION:
@@ -339,6 +337,18 @@ class ActionBarWidget(QWidget):
     
             self.update()
 
+    def stop(self):
+    
+        self.running = False
+        self.paused = False
+        self.timer.stop()
+    
+        self.elapsed = 0
+        self.phrase = ""
+    
+        self.update()
+
+
     def paintEvent(self, event):
 
         painter = QPainter(self)
@@ -422,10 +432,6 @@ class ActionBarWidget(QWidget):
 class Window(QWidget):
     def __init__(self):
         super().__init__()
-
-        self.last_vie_text = ""
-        self.last_jour_text = ""
-        self.last_action_text = ""
 
         # Charger XML
         self.xml_dict = {}
@@ -630,7 +636,7 @@ class Window(QWidget):
         event.accept()
     
     def update_jour(self):
-    
+        
         now = datetime.datetime.now()
         hour = now.hour + now.minute/60.0
         self.jour_bar.set_value(hour)
@@ -640,29 +646,16 @@ class Window(QWidget):
         vie_text = self.vie_dict.get(vie_phrase, "Pas de texte vie")
         self.vie_text.setText(vie_text)
     
-        if vie_text != self.last_vie_text:
-            self.bring_to_front()
-            self.last_vie_text = vie_text
-    
         # Journée
         jour_phrase = self.jour_bar.phrase
         jour_text = self.jour_dict.get(jour_phrase, "Pas de texte journée")
         self.jour_text.setText(jour_text)
     
-        if jour_text != self.last_jour_text:
-            self.bring_to_front()
-            self.last_jour_text = jour_text
-    
         # Action
         action_phrase = self.action_bar.phrase
         action_text = self.action_dict.get(action_phrase, "Pas de texte action")
         self.action_text.setText(action_text)
-    
-        if action_text != self.last_action_text:
-            self.bring_to_front()
-            self.last_action_text = action_text
-            
-        
+
     def load_xml(self, filename):
     
         tree = ET.parse(filename)
