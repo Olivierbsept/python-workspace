@@ -4,6 +4,15 @@
 Created on Sun Mar  8 22:59:24 2026
 
 @author: olivierbessettemac
+
+créer un algorithme en python : soit un segment [AB] de centre C contenant un point D et un point E.
+Soit F le milieu de [AD], G le milieu de [EB] et H le milieu de [DE].
+Si un point M est dans le segment [AD], M1 est tel que vecteur CM1 = vecteur FM1 * longueur AB / longueur AD.
+S'il est dans le segment EB, le vecteur CM1 = vecteur GM1 * longueur AB / longueur EB.
+S'il est dans le segment DE, le vecteur CM1 = vecteur HM1 * longueur AB / longueur DE.
+Même raisonnement pour le point M2 à partir du point M1.
+D'où les points M indice i.
+Pour chaque M indice i, x indice i = 0 si Mi est dans AD, 1 si dans DE, 2 si dans EB.
 """
 
 import sys
@@ -25,7 +34,44 @@ BLINK_DURATION = 5 * 60       # 5 minutes
 RED_DURATION = 5 * 60         # 5 minutes
 BLINK_INTERVAL = 500          # clignotement 0.5 s
 
+JOUR_RED_DURATION = 2 * 60      # rouge 2 minutes
+JOUR_BLINK_DURATION = 2 * 60    # clignotement 2 minutes
+
 # --- Base 3 ---
+
+def compute_x012(A, B, D, E, M):
+
+    C = (A + B) / 2
+
+    F = (A + D) / 2
+    H = (D + E) / 2
+    G = (E + B) / 2
+
+    AB = B - A
+    AD = D - A
+    DE = E - D
+    EB = B - E
+
+    xs = []
+
+    for _ in range(3):
+
+        if A <= M <= D:
+            x = 0
+            M = C + (M - F) * AB / AD
+
+        elif D < M <= E:
+            x = 1
+            M = C + (M - H) * AB / DE
+
+        else:
+            x = 2
+            M = C + (M - G) * AB / EB
+
+        xs.append(x)
+
+    return xs
+
 def to_base3_fixed(value, digits):
     result = ""
     for _ in range(digits):
@@ -49,17 +95,37 @@ def build_phrase(base3):
                 phrase += " du "
     return phrase
 
-def value_to_phrase(value, minv, maxv):
+# def value_to_phrase(value, minv, maxv):
+#     norm = max(0, min(1, (value - minv)/(maxv - minv)))
+#     intval = round(norm * (3**BASE3_DIGITS - 1))
+#     base3 = to_base3_fixed(intval, BASE3_DIGITS)
+#     return build_phrase(base3)
+
+def value_to_phrase(value, minv, maxv, fd_fraction, df_fraction):
+
+    # normalisation dans [0,1]
     norm = max(0, min(1, (value - minv)/(maxv - minv)))
-    intval = round(norm * (3**BASE3_DIGITS - 1))
-    base3 = to_base3_fixed(intval, BASE3_DIGITS)
+
+    A = 0
+    B = 1
+    D = fd_fraction
+    E = df_fraction
+
+    x0, x1, x2 = compute_x012(A, B, D, E, norm)
+
+    base3 = f"{x0}{x1}{x2}"
+
     return build_phrase(base3)
 
 
 class BarWidget(QWidget):
 
-    def __init__(self, minv, maxv):
+    #def __init__(self, minv, maxv):
+    def __init__(self, minv, maxv, red_duration=RED_DURATION, blink_duration=BLINK_DURATION):
         super().__init__()
+
+        self.red_duration = red_duration
+        self.blink_duration = blink_duration
 
         self.value = 0
         self.minv = minv
@@ -93,27 +159,46 @@ class BarWidget(QWidget):
 
         self.value = value
 
-        new_phrase = value_to_phrase(value, self.minv, self.maxv)
+        #new_phrase = value_to_phrase(value, self.minv, self.maxv)
+        new_phrase = value_to_phrase(
+            value,
+            self.minv,
+            self.maxv,
+            self.fd_fraction,
+            self.df_fraction
+        )
 
+        # if new_phrase != self.last_phrase:
+        #     if self.last_phrase != "":
+        #         QtMultimedia.QSound.play("/System/Library/Sounds/Glass.aiff")
+        #         self.red = True
+        #         #QTimer.singleShot(RED_DURATION * 1000, self.stop_red)
+        #         QTimer.singleShot(self.red_duration * 1000, self.stop_red)
+        
+        #     self.last_phrase = new_phrase
+            
         if new_phrase != self.last_phrase:
             if self.last_phrase != "":
                 QtMultimedia.QSound.play("/System/Library/Sounds/Glass.aiff")
-                self.red = True
-                QTimer.singleShot(RED_DURATION * 1000, self.stop_red)
         
-            self.last_phrase = new_phrase
+                # priorité au rouge
+                self.stop_blink()
+        
+                self.red = True
+                QTimer.singleShot(self.red_duration * 1000, self.stop_red)
+        
+            self.last_phrase = new_phrase    
             
-
-
-        if new_phrase != self.last_phrase and self.last_phrase:
-            QtMultimedia.QSound.play("/System/Library/Sounds/Glass.aiff")
-            self.last_phrase = new_phrase
-            self.red = True
-            QTimer.singleShot(RED_DURATION * 1000, self.stop_red)
+        # if new_phrase != self.last_phrase and self.last_phrase:
+        #     QtMultimedia.QSound.play("/System/Library/Sounds/Glass.aiff")
+        #     self.last_phrase = new_phrase
+        #     self.red = True
+        #     QTimer.singleShot(RED_DURATION * 1000, self.stop_red)
 
         seconds_to_change = self.compute_phase()
 
-        if seconds_to_change < BLINK_DURATION:
+        #if seconds_to_change < BLINK_DURATION:
+        if seconds_to_change < self.blink_duration:
             if not self.blink_timer.isActive():
                 self.blink = True
                 self.blink_timer.start(BLINK_INTERVAL)
@@ -165,7 +250,7 @@ class BarWidget(QWidget):
 
 
         # phrase
-        if self.visible:
+        if self.visible or self.red:
 
             if self.red:
                 painter.setPen(QColor(220,0,0))
@@ -221,18 +306,29 @@ class BarWidget(QWidget):
         width = self.width()
     
         x = event.x()/width
-    
+        #
         if self.drag_fd:
-    
+        
             self.fd_fraction = max(0.01, min(self.df_fraction-0.02, x))
-    
-            self.update()
-    
+            self.set_value(self.value)
+        
         elif self.drag_df:
-    
+        
             self.df_fraction = min(0.99, max(self.fd_fraction+0.02, x))
+            self.set_value(self.value)
+        # 
     
-            self.update()
+        # if self.drag_fd:
+    
+        #     self.fd_fraction = max(0.01, min(self.df_fraction-0.02, x))
+    
+        #     self.update()
+    
+        # elif self.drag_df:
+    
+        #     self.df_fraction = min(0.99, max(self.fd_fraction+0.02, x))
+    
+        #     self.update()
   
     def mouseReleaseEvent(self, event):
     
@@ -278,9 +374,21 @@ class BarWidget(QWidget):
         self.start_fraction = max(0.0, min(0.5, f))
         self.update()
 
+# barre actiobn
 class ActionBarWidget(QWidget):
     def __init__(self, duration=30*60):
         super().__init__()
+        
+        self.red = False
+        self.blink = False
+        self.visible = True
+        
+        self.red_duration = 2*60        # 2 minutes rouge après changement de phrase
+        self.blink_duration = 2*60      # clignotement avant changement de phrase
+        self.blink_timer = QTimer()
+        self.blink_timer.timeout.connect(self.toggle_visible)
+        
+        self.last_phrase = ""
 
         self.duration = duration
         self.elapsed = 0
@@ -321,6 +429,19 @@ class ActionBarWidget(QWidget):
             self.timer.stop()
             self.paused = True
 
+    def stop_red(self):
+        self.red = False
+        self.update()
+    
+    def stop_blink(self):
+        self.blink = False
+        self.visible = True
+        self.blink_timer.stop()
+    
+    def toggle_visible(self):
+        self.visible = not self.visible
+        self.update()
+
     def update_time(self):
     
         if self.running and not self.paused:
@@ -330,11 +451,42 @@ class ActionBarWidget(QWidget):
             minutes = self.elapsed / 60
             max_minutes = self.duration / 60
     
-            self.phrase = value_to_phrase(minutes, 0, max_minutes)
+            new_phrase = value_to_phrase(
+                minutes,
+                0,
+                max_minutes,
+                self.fd_fraction,
+                self.df_fraction
+            )
     
-            if self.elapsed >= self.duration:
-                self.stop()
+            # Si la phrase a changé
+            if new_phrase != self.last_phrase:
+                if self.last_phrase != "":
+                    QtMultimedia.QSound.play("/System/Library/Sounds/Glass.aiff")
+                    self.red = True
+                    QTimer.singleShot(self.red_duration*1000, self.stop_red)
     
+                self.last_phrase = new_phrase
+    
+            # Calcul du temps avant le prochain changement
+            total = max_minutes
+            segment = total / (3**BASE3_DIGITS)
+            pos = minutes / segment
+            next_boundary = (math.floor(pos)+1)*segment
+            seconds_to_change = (next_boundary - minutes) * 60  # en secondes
+    
+            # Gestion clignotement si rouge non actif
+            if not self.red:
+                if seconds_to_change < self.blink_duration:
+                    if not self.blink_timer.isActive():
+                        self.blink = True
+                        self.blink_timer.start(BLINK_INTERVAL)
+                else:
+                    self.stop_blink()
+            else:
+                self.stop_blink()
+    
+            self.phrase = new_phrase
             self.update()
 
     def stop(self):
@@ -350,48 +502,45 @@ class ActionBarWidget(QWidget):
 
 
     def paintEvent(self, event):
-
+    
         painter = QPainter(self)
-
         width = self.width()
-
+    
         m1 = int(width * self.fd_fraction)
         m2 = int(width * self.df_fraction)
-
-        # fond
+    
+        # fond + zones FD/DF
         painter.setBrush(QColor(230,230,230))
         painter.drawRect(0, TEXT_MARGIN, width, BAR_HEIGHT)
-
-        # zone début
         painter.setBrush(QColor(200,255,200))
         painter.drawRect(0, TEXT_MARGIN, m1, BAR_HEIGHT)
-        
-        # zone fin
         painter.setBrush(QColor(255,200,200))
         painter.drawRect(m2, TEXT_MARGIN, width-m2, BAR_HEIGHT)
-
-        # progression bleue
+    
+        # progression
         if self.elapsed > 0:
-        
             pos = int(self.elapsed/self.duration * width)
-        
             painter.setBrush(QColor(50,120,220))
             painter.drawRect(0, TEXT_MARGIN, pos, BAR_HEIGHT)
-
+    
+        # texte FD/DF en noir
+        minutes_fd = int(self.duration * self.fd_fraction / 60)
+        minutes_df = int(self.duration * (1 - self.df_fraction) / 60)
         painter.setPen(QColor(0,0,0))
-        painter.drawText(5, TEXT_MARGIN-5, "6 min")
-        painter.drawText(width-50, TEXT_MARGIN-5, "6 min")
-        
-        painter.setPen(QColor(0,0,0))
-        painter.setFont(QFont("Arial",10))
-        
-        if self.phrase:
+        painter.drawText(5, TEXT_MARGIN-5, f"{minutes_fd} min")
+        tw = painter.fontMetrics().horizontalAdvance(f"{minutes_df} min")
+        painter.drawText(width-tw-5, TEXT_MARGIN-5, f"{minutes_df} min")
+    
+        # phrase avec rouge / clignotement
+        if self.red or self.visible:
+            painter.setPen(QColor(220,0,0) if self.red else QColor(0,0,0))
+            painter.setFont(QFont("Arial",10))
             painter.drawText(5, TEXT_MARGIN + BAR_HEIGHT + 15, self.phrase)
-            
+    
+        # traits verticaux FD/DF
         pen = QPen(QColor(0,0,0))
         pen.setWidth(3)
         painter.setPen(pen)
-
         painter.drawLine(m1, TEXT_MARGIN, m1, TEXT_MARGIN + BAR_HEIGHT)
         painter.drawLine(m2, TEXT_MARGIN, m2, TEXT_MARGIN + BAR_HEIGHT)
         
@@ -409,9 +558,19 @@ class ActionBarWidget(QWidget):
             self.drag_df = True
             
     def mouseMoveEvent(self,event):
-
         width = self.width()
         x = event.x()/width
+#
+        # if self.drag_fd:
+        
+        #     self.fd_fraction = max(0.01, min(self.df_fraction-0.02, x))
+        #     self.set_value(self.value)
+        
+        # elif self.drag_df:
+        
+        #     self.df_fraction = min(0.99, max(self.fd_fraction+0.02, x))
+        #     self.set_value(self.value)
+#    
     
         if self.drag_fd:
     
@@ -438,7 +597,6 @@ class Window(QWidget):
         self.load_xml("phrases.xml")
 
         #
-        self.action_bar = ActionBarWidget()
        
         buttons_layout = QHBoxLayout()
         
@@ -481,7 +639,15 @@ class Window(QWidget):
         self.left_panel = QVBoxLayout()
         self.vie_bar = BarWidget(0,79)
         self.vie_bar.set_start_fraction(0.25)
-        self.jour_bar = BarWidget(6,24)
+        #self.jour_bar = BarWidget(6,24)
+        
+        self.jour_bar = BarWidget(
+            6,
+            24,
+            red_duration=JOUR_RED_DURATION,
+            blink_duration=JOUR_BLINK_DURATION
+        )
+        
         self.action_bar = ActionBarWidget()
      
         self.start_btn.clicked.connect(self.action_bar.start)
@@ -637,9 +803,20 @@ class Window(QWidget):
     
     def update_jour(self):
         
+        #
         now = datetime.datetime.now()
+    
+        # JOUR
         hour = now.hour + now.minute/60.0
         self.jour_bar.set_value(hour)
+    
+        # VIE
+        self.vie_bar.set_value(self.vie_bar.value)
+        #
+        
+        # now = datetime.datetime.now()
+        # hour = now.hour + now.minute/60.0
+        # self.jour_bar.set_value(hour)
     
         # Vie
         vie_phrase = self.vie_bar.phrase
