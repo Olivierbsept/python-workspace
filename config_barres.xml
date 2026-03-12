@@ -1,1 +1,1 @@
-<config><vie fd="0.33066666666666666" df="0.6933333333333334" /><jour fd="0.256" df="0.816" /><action fd="0.304" df="0.8186666666666667" /></config>
+<config><vie fd="0.25" df="0.66" naissance="1970-01-01" fin="2049-01-01" /><jour fd="0.33" df="0.66" debut="06:00" fin="00:00" /><action fd="0.2" df="0.8" duree_minutes="30" /></config>
