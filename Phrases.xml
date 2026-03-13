@@ -40,5 +40,10 @@
         <phrase key="milieu du début">Entrer dans le rythme.</phrase>
         <phrase key="fin du début">Concentration maximale.</phrase>
     </action>
+    <meeting>
+        <phrase key="début du début du début">Réunion dans les débuts</phrase>
+        <phrase key="milieu du début">Réunion en milieu</phrase>
+        <phrase key="fin du début">Réunion presque terminée</phrase>
+    </meeting>
 
 </phrases>
