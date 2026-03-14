@@ -13,10 +13,12 @@ import datetime
 import xml.etree.ElementTree as ET
 from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QFrame, QPushButton,
-                             QDateEdit, QTimeEdit, QSpinBox, QDialog, QDialogButtonBox)
+                             QDateEdit, QTimeEdit, QSpinBox, QDialog, QDialogButtonBox, QCalendarWidget)
 from PyQt5.QtCore import QTimer, Qt, QDate, QTime
 from PyQt5.QtGui import QPainter, QColor, QFont, QPen
 from PyQt5 import QtMultimedia
+
+from PyQt5.QtWidgets import QStackedWidget
 
 BAR_HEIGHT    = 30
 BASE3_DIGITS  = 3
@@ -410,6 +412,234 @@ class UnifiedBarWidget(QWidget):
         self.drag_fd = False
         self.drag_df = False
 
+#
+class JourCompactWidget(QWidget):
+    def __init__(self, bar_widget, stack=None, kind="jour"):
+        super().__init__()
+
+        self.bar = bar_widget
+        self.stack = stack
+        self.kind = kind
+
+        self.main_layout = QVBoxLayout(self)
+        self.line_layout = QHBoxLayout()
+
+        # ── Labels ──
+        self.title_lbl = QLabel("")
+        self.symbol_lbl = QLabel("")
+        self.countdown_lbl = QLabel("")
+        self.symbol_lbl.setStyleSheet("font-size:16px;")
+
+        # ── Boutons haut/bas/plus ──
+        self.up_btn = QPushButton("⇧")
+        self.down_btn = QPushButton("⇩")
+        self.plus_btn = QPushButton("+")
+        for b in [self.up_btn, self.down_btn, self.plus_btn]:
+            b.setFixedSize(30, 30)
+
+        # ── Icône de la barre (à droite du titre) ──
+        self.icon_btn = QPushButton()
+        self.icon_btn.setFixedSize(32, 32)
+        self.icon_btn.setStyleSheet("border:none;font-size:18px")
+
+        if self.kind == "vie":
+            self.icon_btn.setText("📅")
+            self.icon_btn.clicked.connect(self.show_calendar)
+        elif self.kind == "jour":
+            self.icon_btn.setText("🗓")
+            self.icon_btn.clicked.connect(self.show_day_picker)
+        elif self.kind == "action":
+            self.icon_btn.setText("⏱")
+            self.icon_btn.clicked.connect(self.show_bar)
+
+        # ── Barre outils (cachée par défaut) ──
+        self.tools_layout = QHBoxLayout()
+        self.cal_btn = QPushButton("📅")
+        self.day_btn = QPushButton("🗓")
+        self.chrono_btn = QPushButton("⏱")
+        for b in [self.cal_btn, self.day_btn, self.chrono_btn]:
+            b.setFixedSize(32, 32)
+            b.setStyleSheet("border:none;font-size:18px")
+            self.tools_layout.addWidget(b)
+        self.tools_layout.addStretch()
+        self.tools_widget = QWidget()
+        self.tools_widget.setLayout(self.tools_layout)
+        self.tools_widget.hide()
+        self.main_layout.addWidget(self.tools_widget)
+
+        # ── Connexions ──
+        self.up_btn.clicked.connect(self.go_up)
+        self.down_btn.clicked.connect(self.go_down)
+        self.plus_btn.clicked.connect(self.toggle_mode)
+
+        self.cal_btn.clicked.connect(self.show_calendar)
+        self.day_btn.clicked.connect(self.show_day_picker)
+        self.chrono_btn.clicked.connect(self.show_bar)
+
+        # ── Boutons action (petits) ──
+        self.start_btn = QPushButton("▶")
+        self.pause_btn = QPushButton("⏸")
+        self.stop_btn = QPushButton("■")
+        for b in [self.start_btn, self.pause_btn, self.stop_btn]:
+            b.setFixedSize(22, 22)
+            b.setStyleSheet("border:none;font-size:14px")
+
+        if self.bar.mode == "timer":
+            self.start_btn.clicked.connect(self.bar.start)
+            self.pause_btn.clicked.connect(self.bar.pause)
+            self.stop_btn.clicked.connect(self.bar.stop)
+
+        # ── Layout principal ──
+        # icône juste après le titre
+        self.line_layout.addWidget(self.title_lbl)
+        self.line_layout.addWidget(self.icon_btn)
+        self.line_layout.addWidget(self.symbol_lbl)
+        self.line_layout.addWidget(self.countdown_lbl)
+        self.line_layout.addStretch()
+
+        if self.bar.mode == "timer":
+            self.line_layout.addWidget(self.start_btn)
+            self.line_layout.addWidget(self.pause_btn)
+            self.line_layout.addWidget(self.stop_btn)
+
+        self.line_layout.addWidget(self.up_btn)
+        self.line_layout.addWidget(self.down_btn)
+        self.line_layout.addWidget(self.plus_btn)
+
+        self.main_layout.addLayout(self.line_layout)
+
+        # ── Timer interne ──
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_display)
+        self.timer.start(500)
+        self.update_display()
+
+    # ── Fonctions pour barre, calendrier, chrono ──
+    def show_bar(self):
+        """Afficher la popup durée pour kind='action'"""
+        if self.kind != "action":
+            # comportement par défaut (affiche la barre)
+            if self.main_layout.indexOf(self.bar) == -1:
+                self.main_layout.addWidget(self.bar)
+            self.bar.show()
+            return
+    
+        # référence à la fenêtre principale pour récupérer la méthode de durée action
+        parent_window = self.parent()
+        while parent_window and not hasattr(parent_window, "_choisir_duree_action"):
+            parent_window = parent_window.parent()
+    
+        if parent_window:
+            parent_window._choisir_duree_action()
+
+    def show_calendar(self):
+        """Afficher la popup date de naissance / date de fin si kind='vie'"""
+        if self.kind != "vie":
+            # comportement par défaut pour autre type
+            cal = QCalendarWidget()
+            cal.setWindowTitle("Choisir une date")
+            cal.show()
+            return
+    
+        # référence à la fenêtre principale pour récupérer dates de vie
+        parent_window = self.parent()
+        while parent_window and not hasattr(parent_window, "_choisir_dates_vie"):
+            parent_window = parent_window.parent()
+    
+        if parent_window:
+            parent_window._choisir_dates_vie()
+
+    def show_day_picker(self):
+        """Afficher la popup heure de début / heure de fin si kind='jour'"""
+        if self.kind != "jour":
+            # comportement par défaut pour autre type
+            d = QDateEdit()
+            d.setCalendarPopup(True)
+            d.show()
+            return
+    
+        # référence à la fenêtre principale pour récupérer les heures de journée
+        parent_window = self.parent()
+        while parent_window and not hasattr(parent_window, "_choisir_heures_jour"):
+            parent_window = parent_window.parent()
+    
+        if parent_window:
+            parent_window._choisir_heures_jour()
+
+    # ── Affichage secondes → texte ──
+    def seconds_to_text(self, s):
+        s = int(s)
+        if s < 60:
+            return f"{s}s"
+        m = s // 60
+        s = s % 60
+        return f"{m}:{s:02d}"
+
+    # ── Affichage barre outils ──
+    def toggle_mode(self):
+        """Afficher ou cacher la barre d'outils et la barre principale"""
+        if self.tools_widget.isVisible():
+            self.tools_widget.hide()
+            if self.main_layout.indexOf(self.bar) != -1:
+                self.main_layout.removeWidget(self.bar)
+                self.bar.hide()
+        else:
+            self.tools_widget.show()
+            if self.main_layout.indexOf(self.bar) == -1:
+                self.main_layout.addWidget(self.bar)
+                self.bar.show()
+
+    # ── Navigation stack ──
+    def go_up(self):
+        if self.stack:
+            i = self.stack.currentIndex()
+            self.stack.setCurrentIndex(max(0, i-1))
+
+    def go_down(self):
+        if self.stack:
+            i = self.stack.currentIndex()
+            self.stack.setCurrentIndex(min(self.stack.count()-1, i+1))
+
+    # ── Mise à jour périodique ──
+    def update_display(self):
+        now = datetime.datetime.now()
+        if self.kind == "vie":
+            self.title_lbl.setText(f"Vie : {now.year}")
+        elif self.kind == "jour":
+            self.title_lbl.setText("Jour : " + now.strftime("%d %b"))
+        else:
+            self.title_lbl.setText("Action :")
+
+        phrase = getattr(self.bar, "phrase", "")
+        symbols = self.phrase_to_symbols(phrase)
+
+        if self.bar.blink and not self.bar.visible:
+            symbols = ""
+
+        self.symbol_lbl.setStyleSheet(
+            f"color:{'red' if self.bar.red else 'black'}; font-size:16px"
+        )
+        self.symbol_lbl.setText(symbols)
+
+        if self.bar.mode == "timer":
+            minutes = self.bar.elapsed / 60
+            max_minutes = self.bar.duration / 60
+            secs = self.bar._seconds_to_next_change(minutes, 0, max_minutes, unit="seconds")
+        else:
+            secs = self.bar._seconds_to_next_change(
+                self.bar.value, self.bar.minv, self.bar.maxv, unit="hours"
+            )
+
+        self.countdown_lbl.setText(self.seconds_to_text(secs))
+
+    # ── Conversion phrase → symboles ──
+    def phrase_to_symbols(self, phrase):
+        if not phrase:
+            return ""
+        words = phrase.replace(" de la ", " ").replace(" du ", " ").split()
+        mapping = {"fin": "□", "milieu": "...", "début": "▲"}
+        return " ".join([mapping.get(w, "") for w in words])
+
 
 # ─────────────────────────────────────────────
 #  Fenêtre principale
@@ -532,7 +762,7 @@ class Window(QWidget):
         vie_titre_row.addStretch()
         vie_col = QVBoxLayout()
         vie_col.addLayout(vie_titre_row)
-        vie_col.addWidget(self.vie_bar)
+        #vie_col.addWidget(self.vie_bar)
         layout.addLayout(vie_col)
 
         # ── Ligne Journée ──
@@ -549,8 +779,24 @@ class Window(QWidget):
         jour_titre_row.addStretch()
         jour_col = QVBoxLayout()
         jour_col.addLayout(jour_titre_row)
-        jour_col.addWidget(self.jour_bar)
+        
+        self.jour_compact = JourCompactWidget(self.jour_bar)
+        #jour_col.addWidget(self.jour_compact)
+        
         layout.addLayout(jour_col)
+        self.stack = QStackedWidget()       
+        self.resume_annee = JourCompactWidget(self.vie_bar, self.stack, "vie")
+        self.resume_jour = JourCompactWidget(self.jour_bar, self.stack, "jour")
+        self.resume_action = JourCompactWidget(self.action_bar, self.stack, "action")
+
+        
+        self.stack.addWidget(self.resume_annee)
+        self.stack.addWidget(self.resume_jour)
+        self.stack.addWidget(self.resume_action)
+        
+        self.stack.setCurrentIndex(1)   # journée par défaut
+        jour_col.addWidget(self.stack)
+
 
         # ── Ligne Action ──
         self.action_titre_lbl = QLabel(self._action_titre())
@@ -566,7 +812,7 @@ class Window(QWidget):
         action_titre_row.addStretch()
         action_col = QVBoxLayout()
         action_col.addLayout(action_titre_row)
-        action_col.addWidget(self.action_bar)
+        #action_col.addWidget(self.action_bar)
         layout.addLayout(action_col)
 
         # ── Boutons ──
