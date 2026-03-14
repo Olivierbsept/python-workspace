@@ -577,17 +577,17 @@ class JourCompactWidget(QWidget):
 
     # ── Affichage barre outils ──
     def toggle_mode(self):
-        """Afficher ou cacher la barre d'outils et la barre principale"""
-        if self.tools_widget.isVisible():
-            self.tools_widget.hide()
-            if self.main_layout.indexOf(self.bar) != -1:
-                self.main_layout.removeWidget(self.bar)
-                self.bar.hide()
+        """Afficher ou cacher uniquement la barre principale, sans les 3 icônes du haut."""
+        # cacher définitivement les 3 icônes
+        self.tools_widget.hide()
+    
+        # afficher ou cacher la barre
+        if self.main_layout.indexOf(self.bar) == -1:
+            self.main_layout.addWidget(self.bar)
+            self.bar.show()
         else:
-            self.tools_widget.show()
-            if self.main_layout.indexOf(self.bar) == -1:
-                self.main_layout.addWidget(self.bar)
-                self.bar.show()
+            self.main_layout.removeWidget(self.bar)
+            self.bar.hide()
 
     # ── Navigation stack ──
     def go_up(self):
@@ -656,29 +656,29 @@ class Window(QWidget):
         self.load_xml("phrases.xml")
 
         # ── Boutons timer ──
-        buttons_layout = QHBoxLayout()
-        self.start_btn = QPushButton("▶")
-        self.pause_btn = QPushButton("⏸")
-        self.stop_btn  = QPushButton("■")
+        #buttons_layout = QHBoxLayout()
+        #self.start_btn = QPushButton("▶")
+        #self.pause_btn = QPushButton("⏸")
+        #self.stop_btn  = QPushButton("■")
 
-        for b in [self.start_btn, self.pause_btn, self.stop_btn]:
-            b.setFixedSize(50, 50)
+        #for b in [self.start_btn, self.pause_btn, self.stop_btn]:
+        #    b.setFixedSize(50, 50)
 
-        self.start_btn.setStyleSheet("color:#2ecc71; border:none; font-size:22px;")
-        self.pause_btn.setStyleSheet("color:#f39c12; border:none; font-size:22px;")
-        self.stop_btn.setStyleSheet( "color:#000000; border:none; font-size:22px;")
+        #self.start_btn.setStyleSheet("color:#2ecc71; border:none; font-size:22px;")
+        #self.pause_btn.setStyleSheet("color:#f39c12; border:none; font-size:22px;")
+        #self.stop_btn.setStyleSheet( "color:#000000; border:none; font-size:22px;")
 
-        for b in [self.start_btn, self.pause_btn, self.stop_btn]:
-            buttons_layout.addWidget(b)
+        #for b in [self.start_btn, self.pause_btn, self.stop_btn]:
+        #    buttons_layout.addWidget(b)
 
         # ── Layout principal ──
         main_layout = QVBoxLayout()
         self.setLayout(main_layout)
 
-        title = QLabel("Gestion du temps")
-        title.setAlignment(Qt.AlignCenter)
-        title.setStyleSheet("font-size:18px; font-weight:bold; margin:10px;")
-        main_layout.addWidget(title)
+        #title = QLabel("Gestion du temps")
+        #title.setAlignment(Qt.AlignCenter)
+        #title.setStyleSheet("font-size:18px; font-weight:bold; margin:10px;")
+        #main_layout.addWidget(title)
 
         layout = QVBoxLayout()
         main_layout.addLayout(layout)
@@ -744,9 +744,9 @@ class Window(QWidget):
             df_fraction=0.80
         )
 
-        self.start_btn.clicked.connect(self.action_bar.start)
-        self.pause_btn.clicked.connect(self.action_bar.pause)
-        self.stop_btn.clicked.connect(self.action_bar.stop)
+        #self.start_btn.clicked.connect(self.action_bar.start)
+        #self.pause_btn.clicked.connect(self.action_bar.pause)
+        #self.stop_btn.clicked.connect(self.action_bar.stop)
 
         # ── Ligne Vie ──
         self.vie_titre_lbl = QLabel(self._vie_titre())
@@ -762,27 +762,23 @@ class Window(QWidget):
         vie_titre_row.addStretch()
         vie_col = QVBoxLayout()
         vie_col.addLayout(vie_titre_row)
-        #vie_col.addWidget(self.vie_bar)
-        layout.addLayout(vie_col)
+        #layout.addLayout(vie_col)
 
         # ── Ligne Journée ──
-        self.jour_titre_lbl = QLabel(self._jour_titre())
-        self.jour_titre_lbl.setAlignment(Qt.AlignCenter)
-        self.btn_heures_jour = QPushButton("⏰")
-        self.btn_heures_jour.setFixedSize(28, 28)
-        self.btn_heures_jour.setStyleSheet("border:none; font-size:16px;")
-        self.btn_heures_jour.clicked.connect(self._choisir_heures_jour)
-        jour_titre_row = QHBoxLayout()
-        jour_titre_row.addStretch()
-        jour_titre_row.addWidget(self.jour_titre_lbl)
-        jour_titre_row.addWidget(self.btn_heures_jour)
-        jour_titre_row.addStretch()
+        # self.jour_titre_lbl = QLabel(self._jour_titre())
+        # self.jour_titre_lbl.setAlignment(Qt.AlignCenter)
+        # self.btn_heures_jour = QPushButton("⏰")
+        # self.btn_heures_jour.setFixedSize(28, 28)
+        # self.btn_heures_jour.setStyleSheet("border:none; font-size:16px;")
+        # self.btn_heures_jour.clicked.connect(self._choisir_heures_jour)
+        # jour_titre_row = QHBoxLayout()
+        # jour_titre_row.addStretch()
+        # jour_titre_row.addWidget(self.jour_titre_lbl)
+        # jour_titre_row.addWidget(self.btn_heures_jour)
+        # jour_titre_row.addStretch()
         jour_col = QVBoxLayout()
-        jour_col.addLayout(jour_titre_row)
-        
-        self.jour_compact = JourCompactWidget(self.jour_bar)
-        #jour_col.addWidget(self.jour_compact)
-        
+        # jour_col.addLayout(jour_titre_row)
+        # self.jour_compact = JourCompactWidget(self.jour_bar)
         layout.addLayout(jour_col)
         self.stack = QStackedWidget()       
         self.resume_annee = JourCompactWidget(self.vie_bar, self.stack, "vie")
@@ -796,31 +792,31 @@ class Window(QWidget):
         
         self.stack.setCurrentIndex(1)   # journée par défaut
         jour_col.addWidget(self.stack)
-
+        self.setSizePolicy(self.sizePolicy().Minimum, self.sizePolicy().Minimum)
+        self.adjustSize()
 
         # ── Ligne Action ──
-        self.action_titre_lbl = QLabel(self._action_titre())
-        self.action_titre_lbl.setAlignment(Qt.AlignCenter)
-        self.btn_duree_action = QPushButton("⏱")
-        self.btn_duree_action.setFixedSize(28, 28)
-        self.btn_duree_action.setStyleSheet("border:none; font-size:16px;")
-        self.btn_duree_action.clicked.connect(self._choisir_duree_action)
-        action_titre_row = QHBoxLayout()
-        action_titre_row.addStretch()
-        action_titre_row.addWidget(self.action_titre_lbl)
-        action_titre_row.addWidget(self.btn_duree_action)
-        action_titre_row.addStretch()
-        action_col = QVBoxLayout()
-        action_col.addLayout(action_titre_row)
-        #action_col.addWidget(self.action_bar)
-        layout.addLayout(action_col)
+        # self.action_titre_lbl = QLabel(self._action_titre())
+        # self.action_titre_lbl.setAlignment(Qt.AlignCenter)
+        # self.btn_duree_action = QPushButton("⏱")
+        # self.btn_duree_action.setFixedSize(28, 28)
+        # self.btn_duree_action.setStyleSheet("border:none; font-size:16px;")
+        # self.btn_duree_action.clicked.connect(self._choisir_duree_action)
+        # action_titre_row = QHBoxLayout()
+        # action_titre_row.addStretch()
+        # action_titre_row.addWidget(self.action_titre_lbl)
+        # action_titre_row.addWidget(self.btn_duree_action)
+        # action_titre_row.addStretch()
+        # action_col = QVBoxLayout()
+        # action_col.addLayout(action_titre_row)
+        # layout.addLayout(action_col)
 
         # ── Boutons ──
-        buttons_row = QHBoxLayout()
-        buttons_row.addStretch()
-        buttons_row.addLayout(buttons_layout)
-        buttons_row.addStretch()
-        layout.addLayout(buttons_row)
+        #buttons_row = QHBoxLayout()
+        #buttons_row.addStretch()
+        #buttons_row.addLayout(buttons_layout)
+        #buttons_row.addStretch()
+        #layout.addLayout(buttons_row)
 
         # ── Panneau texte unique en bas ──
         self.texte_vie    = QLabel("")
@@ -830,26 +826,30 @@ class Window(QWidget):
         for lbl in [self.texte_vie, self.texte_jour, self.texte_action]:
             lbl.setWordWrap(True)
 
-        texte_panel = QFrame()
-        texte_panel.setFrameStyle(QFrame.Panel | QFrame.Sunken)
-        texte_layout = QVBoxLayout(texte_panel)
-        texte_layout.setContentsMargins(8, 6, 8, 6)
-        texte_layout.setSpacing(4)
-        texte_layout.addWidget(self.texte_vie)
-        texte_layout.addWidget(self.texte_jour)
-        texte_layout.addWidget(self.texte_action)
-        layout.addWidget(texte_panel)
+        #texte_panel = QFrame()
+        #texte_panel.setFrameStyle(QFrame.Panel | QFrame.Sunken)
+        #texte_layout = QVBoxLayout(texte_panel)
+        #texte_layout.setContentsMargins(8, 6, 8, 6)
+        #texte_layout.setSpacing(4)
+        #texte_layout.addWidget(self.texte_vie)
+        #texte_layout.addWidget(self.texte_jour)
+        #texte_layout.addWidget(self.texte_action)
+        #layout.addWidget(texte_panel)
 
         # ── Init ──
         self.vie_bar.set_value(56)
         self.update_jour()
-        self.resize(800, 380)
+        #self.resize(800, 380)
 
         timer = QTimer(self)
         timer.timeout.connect(self.update_jour)
         timer.start(1000)
 
         self.load_bar_config()
+
+    def ajuster_fenetre(self):
+        self.layout().activate()
+        self.resize(self.sizeHint())
 
     # ── Construction d'une ligne barre seule ──
 
