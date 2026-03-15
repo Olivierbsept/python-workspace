@@ -254,18 +254,45 @@ class UnifiedBarWidget(QWidget):
 
     def _seconds_to_next_change(self, value, minv, maxv, unit='seconds'):
         """
-        Retourne le temps (en secondes) avant le prochain changement de phrase.
-        unit='seconds' si value est en minutes, 'hours' si en heures.
+        Temps (secondes) avant le prochain changement de phrase.
+        Compatible avec compute_x012().
         """
-        total   = maxv - minv
-        segment = total / (3 ** BASE3_DIGITS)
-        pos     = (value - minv) / segment
-        next_b  = (math.floor(pos) + 1) * segment + minv
-        delta   = next_b - value
-        if unit == 'seconds':
-            return delta * 60.0   # value en minutes → delta en secondes
+    
+        current_phrase = value_to_phrase(value, minv, maxv,
+                                         self.fd_fraction, self.df_fraction)
+    
+        low = value
+        high = maxv
+    
+        # recherche grossière
+        step = (maxv - minv) / 200
+        v = value
+    
+        while v <= maxv:
+            v += step
+            p = value_to_phrase(v, minv, maxv,
+                                self.fd_fraction, self.df_fraction)
+            if p != current_phrase:
+                high = v
+                break
+    
+        # recherche dichotomique précise
+        for _ in range(20):
+            mid = (low + high) / 2
+            p = value_to_phrase(mid, minv, maxv,
+                                self.fd_fraction, self.df_fraction)
+    
+            if p == current_phrase:
+                low = mid
+            else:
+                high = mid
+    
+        delta = high - value
+    
+        if unit == "seconds":
+            return delta * 60
         else:
-            return delta * 3600.0  # value en heures  → delta en secondes
+            return delta * 3600
 
     def _stop_red(self):
         self.red = False
@@ -414,12 +441,17 @@ class UnifiedBarWidget(QWidget):
 
 #
 class JourCompactWidget(QWidget):
-    def __init__(self, bar_widget, stack=None, kind="jour"):
+    def __init__(self, bar_widget, stack=None, kind="jour",
+                 vie_dict=None, jour_dict=None, action_dict=None):
         super().__init__()
-
         self.bar = bar_widget
         self.stack = stack
         self.kind = kind
+
+        # stocker les dictionnaires
+        self.vie_dict = vie_dict or {}
+        self.jour_dict = jour_dict or {}
+        self.action_dict = action_dict or {}
 
         self.main_layout = QVBoxLayout(self)
         self.line_layout = QHBoxLayout()
@@ -429,6 +461,12 @@ class JourCompactWidget(QWidget):
         self.symbol_lbl = QLabel("")
         self.countdown_lbl = QLabel("")
         self.symbol_lbl.setStyleSheet("font-size:16px;")
+        
+        # Label pour afficher le texte XML sous les symboles
+        self.xml_text_lbl = QLabel("")
+        self.xml_text_lbl.setWordWrap(True)
+        self.xml_text_lbl.setStyleSheet("color: darkblue; font-size:12px;")
+        self.main_layout.addWidget(self.xml_text_lbl)
 
         # ── Boutons haut/bas/plus ──
         self.up_btn = QPushButton("⇧")
@@ -496,6 +534,11 @@ class JourCompactWidget(QWidget):
         self.line_layout.addWidget(self.symbol_lbl)
         self.line_layout.addWidget(self.countdown_lbl)
         self.line_layout.addStretch()
+        
+        self.xml_text_lbl = QLabel("")         # nouveau label pour le texte XML
+        self.xml_text_lbl.setWordWrap(True)
+        self.xml_text_lbl.setStyleSheet("color: darkblue; font-size:12px;")  
+        self.main_layout.addWidget(self.xml_text_lbl)
 
         if self.bar.mode == "timer":
             self.line_layout.addWidget(self.start_btn)
@@ -513,6 +556,11 @@ class JourCompactWidget(QWidget):
         self.timer.timeout.connect(self.update_display)
         self.timer.start(500)
         self.update_display()
+        
+        # stocker les dictionnaires
+        self.vie_dict = vie_dict or {}
+        self.jour_dict = jour_dict or {}
+        self.action_dict = action_dict or {}
 
     # ── Fonctions pour barre, calendrier, chrono ──
     def show_bar(self):
@@ -567,6 +615,20 @@ class JourCompactWidget(QWidget):
             parent_window._choisir_heures_jour()
 
     # ── Affichage secondes → texte ──
+    def seconds_to_life_text(self, seconds):
+        # self.bar.value est en années fractionnaires
+        # Convertir secondes en fraction d'année
+        hours_per_year = 365.25 * 24
+    
+        # fraction d'année
+        years_fraction = seconds / 3600 / hours_per_year
+    
+        years = int(years_fraction)
+        hours = int((years_fraction - years) * hours_per_year)
+        #print(f"[DEBUG] years_fraction={years_fraction}, years={years}, hours={hours, secondes=}")  # debug
+
+        return f"{years} ans {hours} h"
+    
     def seconds_to_text(self, s):
         s = int(s)
         if s < 60:
@@ -603,43 +665,106 @@ class JourCompactWidget(QWidget):
     # ── Mise à jour périodique ──
     def update_display(self):
         now = datetime.datetime.now()
+    
+        # ── mise à jour valeur barre ──
+        if self.kind == "jour":
+            hour = now.hour + now.minute/60 + now.second/3600
+            self.bar.set_value(hour)
+    
+        # ── titre ──
         if self.kind == "vie":
-            self.title_lbl.setText(f"Vie : {now.year}")
+            self.title_lbl.setText(f"❤️ {now.year}")
         elif self.kind == "jour":
-            self.title_lbl.setText("Jour : " + now.strftime("%d %b"))
+            self.title_lbl.setText("☀️" + now.strftime("%d %b"))
         else:
-            self.title_lbl.setText("Action :")
+            self.title_lbl.setText("⚡")
+        
+        #self.title_lbl.setStyleSheet("font-size:16px; font-family: Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji;")
 
+
+        # ── phrase → symboles ──
         phrase = getattr(self.bar, "phrase", "")
         symbols = self.phrase_to_symbols(phrase)
-
+    
         if self.bar.blink and not self.bar.visible:
             symbols = ""
-
+    
         self.symbol_lbl.setStyleSheet(
             f"color:{'red' if self.bar.red else 'black'}; font-size:16px"
         )
         self.symbol_lbl.setText(symbols)
+    
+        # ── texte XML correspondant sous la phrase ──
+        phrase = getattr(self.bar, "phrase", "")
 
+        # Texte XML correspondant à la phrase
+        if self.kind == "vie":
+            text_xml = self.vie_dict.get(phrase, "")
+        elif self.kind == "jour":
+            text_xml = self.jour_dict.get(phrase, "")
+        else:  # action
+            text_xml = self.action_dict.get(phrase, "")
+    
+        # Mettre à jour le label dédié sous la barre
+        self.xml_text_lbl.setText(text_xml)
+    
+        # ── calcul temps restant ──
         if self.bar.mode == "timer":
+    
             minutes = self.bar.elapsed / 60
             max_minutes = self.bar.duration / 60
-            secs = self.bar._seconds_to_next_change(minutes, 0, max_minutes, unit="seconds")
-        else:
+    
             secs = self.bar._seconds_to_next_change(
-                self.bar.value, self.bar.minv, self.bar.maxv, unit="hours"
+                minutes, 0, max_minutes, unit="seconds"
             )
-
-        self.countdown_lbl.setText(self.seconds_to_text(secs))
+    
+        else:
+    
+            if self.kind == "vie":
+                unit = "years"
+            else:
+                unit = "hours"
+    
+            secs = self.bar._seconds_to_next_change(
+                self.bar.value,
+                self.bar.minv,
+                self.bar.maxv,
+                unit=unit
+            )
+    
+        # ── affichage countdown ──
+        if self.kind == "vie":
+            self.countdown_lbl.setText(self.seconds_to_life_text(secs))
+        else:
+            self.countdown_lbl.setText(self.seconds_to_text(secs))
 
     # ── Conversion phrase → symboles ──
+    # def phrase_to_symbols(self, phrase):
+    #     if not phrase:
+    #         return ""
+    #     words = phrase.replace(" de la ", " ").replace(" du ", " ").split()
+    #     mapping = {"fin": "□", "milieu": "...", "début": "▲"}
+    #     return " ".join([mapping.get(w, "") for w in words])
+    
     def phrase_to_symbols(self, phrase):
         if not phrase:
             return ""
+    
         words = phrase.replace(" de la ", " ").replace(" du ", " ").split()
+        words = words[::-1]  # inversion de l'ordre
+    
         mapping = {"fin": "□", "milieu": "...", "début": "▲"}
         return " ".join([mapping.get(w, "") for w in words])
-
+    
+    def phrase_to_text(self, phrase):
+        """Retourne le texte XML correspondant à la phrase."""
+        if self.kind == "vie":
+            return self.parent().vie_dict.get(phrase, "")
+        elif self.kind == "jour":
+            return self.parent().jour_dict.get(phrase, "")
+        elif self.kind == "action":
+            return self.parent().action_dict.get(phrase, "")
+        return ""
 
 # ─────────────────────────────────────────────
 #  Fenêtre principale
@@ -648,6 +773,8 @@ class JourCompactWidget(QWidget):
 class Window(QWidget):
     def __init__(self):
         super().__init__()
+
+
 
         self.xml_dict   = {}
         self.vie_dict   = {}
@@ -674,6 +801,9 @@ class Window(QWidget):
         # ── Layout principal ──
         main_layout = QVBoxLayout()
         self.setLayout(main_layout)
+        
+        # Titre de la fenêtre avec icônes
+        self.setWindowTitle("          ❤️ / ☀️ / ⚡")  # ajoute un décalage vers la droite
 
         #title = QLabel("Gestion du temps")
         #title.setAlignment(Qt.AlignCenter)
@@ -781,10 +911,20 @@ class Window(QWidget):
         # self.jour_compact = JourCompactWidget(self.jour_bar)
         layout.addLayout(jour_col)
         self.stack = QStackedWidget()       
-        self.resume_annee = JourCompactWidget(self.vie_bar, self.stack, "vie")
-        self.resume_jour = JourCompactWidget(self.jour_bar, self.stack, "jour")
-        self.resume_action = JourCompactWidget(self.action_bar, self.stack, "action")
+        # self.resume_annee = JourCompactWidget(self.vie_bar, self.stack, "vie")
+        # self.resume_jour = JourCompactWidget(self.jour_bar, self.stack, "jour")
+        # self.resume_action = JourCompactWidget(self.action_bar, self.stack, "action")
 
+
+        self.resume_annee = JourCompactWidget(
+            self.vie_bar, self.stack, "vie", vie_dict=self.vie_dict
+        )
+        self.resume_jour = JourCompactWidget(
+            self.jour_bar, self.stack, "jour", jour_dict=self.jour_dict
+        )
+        self.resume_action = JourCompactWidget(
+            self.action_bar, self.stack, "action", action_dict=self.action_dict
+        )
         
         self.stack.addWidget(self.resume_annee)
         self.stack.addWidget(self.resume_jour)
