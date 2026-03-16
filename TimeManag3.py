@@ -165,7 +165,9 @@ class UnifiedBarWidget(QWidget):
             self._tick_timer.timeout.connect(self._tick)
 
         self.setMinimumHeight(BAR_HEIGHT + 2 * TEXT_MARGIN + 20)
-
+        #self.setMinimumHeight(BAR_HEIGHT + 10)
+        #self.setMinimumHeight(BAR_HEIGHT + TEXT_MARGIN + 8)
+        
     # ── API publique ──────────────────────────
 
     def set_value(self, value):
@@ -453,7 +455,10 @@ class JourCompactWidget(QWidget):
         self.jour_dict = jour_dict or {}
         self.action_dict = action_dict or {}
 
+        #self.main_layout = QVBoxLayout(self)
         self.main_layout = QVBoxLayout(self)
+        self.main_layout.setContentsMargins(2, 2, 2, 2)
+        self.main_layout.setSpacing(2)
         self.line_layout = QHBoxLayout()
 
         # ── Labels ──
@@ -465,8 +470,8 @@ class JourCompactWidget(QWidget):
         # Label pour afficher le texte XML sous les symboles
         self.xml_text_lbl = QLabel("")
         self.xml_text_lbl.setWordWrap(True)
-        self.xml_text_lbl.setStyleSheet("color: darkblue; font-size:12px;")
-        self.main_layout.addWidget(self.xml_text_lbl)
+        self.xml_text_lbl.setStyleSheet("color: darkblue; font-size:10px;")
+        #self.main_layout.addWidget(self.xml_text_lbl)
 
         # ── Boutons haut/bas/plus ──
         self.up_btn = QPushButton("⇧")
@@ -474,6 +479,10 @@ class JourCompactWidget(QWidget):
         self.plus_btn = QPushButton("+")
         for b in [self.up_btn, self.down_btn, self.plus_btn]:
             b.setFixedSize(30, 30)
+
+        if stack is None:
+            self.up_btn.hide()
+            self.down_btn.hide()
 
         # ── Icône de la barre (à droite du titre) ──
         self.icon_btn = QPushButton()
@@ -639,17 +648,22 @@ class JourCompactWidget(QWidget):
 
     # ── Affichage barre outils ──
     def toggle_mode(self):
-        """Afficher ou cacher uniquement la barre principale, sans les 3 icônes du haut."""
-        # cacher définitivement les 3 icônes
+        """Afficher ou cacher uniquement la barre principale."""
         self.tools_widget.hide()
     
-        # afficher ou cacher la barre
         if self.main_layout.indexOf(self.bar) == -1:
             self.main_layout.addWidget(self.bar)
             self.bar.show()
         else:
             self.main_layout.removeWidget(self.bar)
             self.bar.hide()
+    
+        # forcer le recalcul de la taille de la fenêtre
+        self.adjustSize()
+        w = self.window()
+        if w:
+            w.adjustSize()
+
 
     # ── Navigation stack ──
     def go_up(self):
@@ -672,9 +686,15 @@ class JourCompactWidget(QWidget):
             self.bar.set_value(hour)
     
         # ── titre ──
+        #if self.kind == "vie":
+        #    self.title_lbl.setText(f"❤️ {now.year}")
+        
         if self.kind == "vie":
-            self.title_lbl.setText(f"❤️ {now.year}")
-        elif self.kind == "jour":
+            unit = "hours"   # conversion correcte ensuite
+        else:
+            unit = "hours"
+        
+        if self.kind == "jour":
             self.title_lbl.setText("☀️" + now.strftime("%d %b"))
         else:
             self.title_lbl.setText("⚡")
@@ -710,26 +730,31 @@ class JourCompactWidget(QWidget):
     
         # ── calcul temps restant ──
         if self.bar.mode == "timer":
-    
+        
             minutes = self.bar.elapsed / 60
             max_minutes = self.bar.duration / 60
-    
+        
             secs = self.bar._seconds_to_next_change(
                 minutes, 0, max_minutes, unit="seconds"
             )
-    
+        
         else:
-    
+        
             if self.kind == "vie":
-                unit = "years"
+                # convertir années → heures
+                value = self.bar.value * 365.25 * 24
+                minv  = self.bar.minv * 365.25 * 24
+                maxv  = self.bar.maxv * 365.25 * 24
             else:
-                unit = "hours"
-    
+                value = self.bar.value
+                minv  = self.bar.minv
+                maxv  = self.bar.maxv
+        
             secs = self.bar._seconds_to_next_change(
-                self.bar.value,
-                self.bar.minv,
-                self.bar.maxv,
-                unit=unit
+                value,
+                minv,
+                maxv,
+                unit="hours"
             )
     
         # ── affichage countdown ──
@@ -907,31 +932,26 @@ class Window(QWidget):
         # jour_titre_row.addWidget(self.btn_heures_jour)
         # jour_titre_row.addStretch()
         jour_col = QVBoxLayout()
+        jour_col.setSpacing(2)
+        jour_col.setContentsMargins(0, 0, 0, 0)
         # jour_col.addLayout(jour_titre_row)
         # self.jour_compact = JourCompactWidget(self.jour_bar)
         layout.addLayout(jour_col)
-        self.stack = QStackedWidget()       
-        # self.resume_annee = JourCompactWidget(self.vie_bar, self.stack, "vie")
-        # self.resume_jour = JourCompactWidget(self.jour_bar, self.stack, "jour")
-        # self.resume_action = JourCompactWidget(self.action_bar, self.stack, "action")
-
 
         self.resume_annee = JourCompactWidget(
-            self.vie_bar, self.stack, "vie", vie_dict=self.vie_dict
+            self.vie_bar, None, "vie", vie_dict=self.vie_dict
         )
         self.resume_jour = JourCompactWidget(
-            self.jour_bar, self.stack, "jour", jour_dict=self.jour_dict
+            self.jour_bar, None, "jour", jour_dict=self.jour_dict
         )
         self.resume_action = JourCompactWidget(
-            self.action_bar, self.stack, "action", action_dict=self.action_dict
+            self.action_bar, None, "action", action_dict=self.action_dict
         )
         
-        self.stack.addWidget(self.resume_annee)
-        self.stack.addWidget(self.resume_jour)
-        self.stack.addWidget(self.resume_action)
+        jour_col.addWidget(self.resume_annee)
+        jour_col.addWidget(self.resume_jour)
+        jour_col.addWidget(self.resume_action)
         
-        self.stack.setCurrentIndex(1)   # journée par défaut
-        jour_col.addWidget(self.stack)
         self.setSizePolicy(self.sizePolicy().Minimum, self.sizePolicy().Minimum)
         self.adjustSize()
 
