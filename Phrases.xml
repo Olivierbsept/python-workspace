@@ -3,42 +3,254 @@
 
     <vie>
         <phrase key="début du début du début">
-            Texte correspondant au début de la vie.
+            début du début du début de la vie.
         </phrase>
-
+        <phrase key="milieu du début du début">
+            milieu du début du début de la vie.
+        </phrase>
+        <phrase key="fin du début du début">
+            fin du début du début de la vie.
+        </phrase> 
+        <phrase key="début du milieu du début">
+            début du milieu du début de la vie.
+        </phrase> 
         <phrase key="milieu du milieu du début">
-            Texte correspondant au milieu de la vie.
+            milieu du milieu du début de la vie.
+        </phrase>
+        <phrase key="fin du milieu du début">
+            fin du milieu du début de la vie.
+        </phrase>
+        <phrase key="début de la fin du début">
+            début de la fin du début de la vie.
+        </phrase> 
+        <phrase key="milieu de la fin du début">
+            milieu de la fin du début de la vie.
+        </phrase>
+        <phrase key="fin de la fin du début">
+            fin de la fin du début de la vie.
+        </phrase>   
+        <phrase key="début du début du milieu">
+            début du début du milieu de la vie.
+        </phrase>
+        <phrase key="milieu du début du milieu">
+            milieu du début du milieu de la vie.
+        </phrase>
+        <phrase key="fin du début du milieu">
+            fin du début du milieu de la vie.
+        </phrase> 
+        <phrase key="début du milieu du milieu">
+            début du milieu du milieu de la vie.
+        </phrase> 
+        <phrase key="milieu du milieu du milieu">
+            milieu du milieu du milieu de la vie.
+        </phrase>
+        <phrase key="fin du milieu du milieu">
+            fin du milieu du milieu de la vie.
+        </phrase>
+        <phrase key="début de la fin du milieu">
+            début de la fin du milieu de la vie.
+        </phrase> 
+        <phrase key="milieu de la fin du milieu">
+            milieu de la fin du milieu de la vie.
+        </phrase>
+        <phrase key="fin de la fin du milieu">
+            fin de la fin du milieu de la vie.
         </phrase>
         <phrase key="début du début de la fin">
-            Arrêter de perdre du temps.
+            début du début de la fin de la vie : Arrêter de perdre du temps.
+        </phrase>
+        <phrase key="milieu du début de la fin">
+            milieu du début de la fin de la vie.
+        </phrase>
+        <phrase key="fin du début de la fin">
+            fin du début de la fin de la vie.
+        </phrase> 
+        <phrase key="début du milieu de la fin">
+            début du milieu de la fin de la vie.
+        </phrase> 
+        <phrase key="milieu du milieu de la fin">
+            milieu du milieu de la fin de la vie.
+        </phrase>
+        <phrase key="fin du milieu de la fin">
+            fin du milieu de la fin de la vie.
+        </phrase>
+        <phrase key="début de la fin de la fin">
+            début de la fin de la fin de la vie.
+        </phrase> 
+        <phrase key="milieu de la fin de la fin">
+            milieu de la fin de la fin de la vie.
         </phrase>
         <phrase key="fin de la fin de la fin">
-            Texte correspondant à la fin de la vie.
+            fin de la fin de la fin de la vie.
         </phrase>
     </vie>
 
     <jour>
         <phrase key="début du début du début">
-            Texte correspondant au début de la journée.
+            début du début du début de la journée.
         </phrase>
-
+        <phrase key="milieu du début du début">
+            milieu du début du début de la journée.
+        </phrase>
+        <phrase key="fin du début du début">
+            fin du début du début de la journée.
+        </phrase> 
+        <phrase key="début du milieu du début">
+            début du milieu du début de la journée.
+        </phrase> 
+        <phrase key="milieu du milieu du début">
+            milieu du milieu du début de la journée.
+        </phrase>
+        <phrase key="fin du milieu du début">
+            fin du milieu du début de la journée.
+        </phrase>
+        <phrase key="début de la fin du début">
+            début de la fin du début de la journée.
+        </phrase> 
+        <phrase key="milieu de la fin du début">
+            milieu de la fin du début de la journée.
+        </phrase>
+        <phrase key="fin de la fin du début">
+            fin de la fin du début de la journée.
+        </phrase>   
+        <phrase key="début du début du milieu">
+            début du début du milieu de la journée.
+        </phrase>
+        <phrase key="milieu du début du milieu">
+            milieu du début du milieu de la journée.
+        </phrase>
+        <phrase key="fin du début du milieu">
+            fin du début du milieu de la journée.
+        </phrase> 
+        <phrase key="début du milieu du milieu">
+            début du milieu du milieu de la journée.
+        </phrase> 
         <phrase key="milieu du milieu du milieu">
-            Texte correspondant au milieu de la journée.
+            milieu du milieu du milieu de la journée.
         </phrase>
+        <phrase key="fin du milieu du milieu">
+            fin du milieu du milieu de la journée.
+        </phrase>
+        <phrase key="début de la fin du milieu">
+            début de la fin du milieu de la journée.
+        </phrase> 
+        <phrase key="milieu de la fin du milieu">
+            milieu de la fin du milieu de la journée.
+        </phrase>
+        <phrase key="fin de la fin du milieu">
+            fin de la fin du milieu de la journée.
+        </phrase>
+        <phrase key="début du début de la fin">
+            début du début de la fin de la journée : Se reposer.
+        </phrase>
+        <phrase key="milieu du début de la fin">
+            milieu du début de la fin de la journée.
+        </phrase>
+        <phrase key="fin du début de la fin">
+            fin du début de la fin de la journée.
+        </phrase> 
+        <phrase key="début du milieu de la fin">
+            début du milieu de la fin de la journée.
+        </phrase> 
+        <phrase key="milieu du milieu de la fin">
+            milieu du milieu de la fin de la journée.
+        </phrase>
+        <phrase key="fin du milieu de la fin">
+            fin du milieu de la fin de la journée.
+        </phrase>
+        <phrase key="début de la fin de la fin">
+            début de la fin de la fin de la journée.
+        </phrase> 
         <phrase key="milieu de la fin de la fin">
-            Remballer.
+            milieu de la fin de la fin de la journée.
         </phrase>
         <phrase key="fin de la fin de la fin">
-            Texte correspondant à la fin de la journée.
+            fin de la fin de la fin de la journée.
         </phrase>
     </jour>
     
     <action>
         <phrase key="début du début du début">
-            Texte correspondant au début de la journée.
+            début du début du début de l'action.
         </phrase>
-        <phrase key="milieu du début">Entrer dans le rythme.</phrase>
-        <phrase key="fin du début">Concentration maximale.</phrase>
+        <phrase key="milieu du début du début">
+            milieu du début du début de l'action.
+        </phrase>
+        <phrase key="fin du début du début">
+            fin du début du début de l'action.
+        </phrase> 
+        <phrase key="début du milieu du début">
+            début du milieu du début de l'action.
+        </phrase> 
+        <phrase key="milieu du milieu du début">
+            milieu du milieu du début de l'action.
+        </phrase>
+        <phrase key="fin du milieu du début">
+            fin du milieu du début de l'action.
+        </phrase>
+        <phrase key="début de la fin du début">
+            début de la fin du début de l'action.
+        </phrase> 
+        <phrase key="milieu de la fin du début">
+            milieu de la fin du début de l'action.
+        </phrase>
+        <phrase key="fin de la fin du début">
+            fin de la fin du début de l'action.
+        </phrase>   
+        <phrase key="début du début du milieu">
+            début du début du milieu de l'action.
+        </phrase>
+        <phrase key="milieu du début du milieu">
+            milieu du début du milieu de l'action.
+        </phrase>
+        <phrase key="fin du début du milieu">
+            fin du début du milieu de l'action.
+        </phrase> 
+        <phrase key="début du milieu du milieu">
+            début du milieu du milieu de l'action.
+        </phrase> 
+        <phrase key="milieu du milieu du milieu">
+            milieu du milieu du milieu de l'action.
+        </phrase>
+        <phrase key="fin du milieu du milieu">
+            fin du milieu du milieu de l'action.
+        </phrase>
+        <phrase key="début de la fin du milieu">
+            début de la fin du milieu de l'action.
+        </phrase> 
+        <phrase key="milieu de la fin du milieu">
+            milieu de la fin du milieu de l'action.
+        </phrase>
+        <phrase key="fin de la fin du milieu">
+            fin de la fin du milieu de l'action.
+        </phrase>
+        <phrase key="début du début de la fin">
+            début du début de la fin de l'action : Conclure.
+        </phrase>
+        <phrase key="milieu du début de la fin">
+            milieu du début de la fin de l'action.
+        </phrase>
+        <phrase key="fin du début de la fin">
+            fin du début de la fin de l'action.
+        </phrase> 
+        <phrase key="début du milieu de la fin">
+            début du milieu de la fin de l'action.
+        </phrase> 
+        <phrase key="milieu du milieu de la fin">
+            milieu du milieu de la fin de l'action.
+        </phrase>
+        <phrase key="fin du milieu de la fin">
+            fin du milieu de la fin de l'action.
+        </phrase>
+        <phrase key="début de la fin de la fin">
+            début de la fin de la fin de l'action.
+        </phrase> 
+        <phrase key="milieu de la fin de la fin">
+            milieu de la fin de la fin de l'action.
+        </phrase>
+        <phrase key="fin de la fin de la fin">
+            fin de la fin de la fin de l'action.
+        </phrase>
     </action>
     <meeting>
         <phrase key="début du début du début">Réunion dans les débuts</phrase>

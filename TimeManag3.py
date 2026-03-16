@@ -365,9 +365,11 @@ class UnifiedBarWidget(QWidget):
         painter.drawText(max(0, m2 - tw_df // 2), TEXT_MARGIN - 5, lbl_df)
 
         # ── phrase ──
-        if self.visible or self.red:
-            painter.setPen(QColor(220, 0, 0) if self.red else QColor(0, 0, 0))
-            painter.drawText(5, TEXT_MARGIN + BAR_HEIGHT + 15, self.phrase)
+        # if self.visible or self.red:
+        #     painter.setPen(QColor(220, 0, 0) if self.red else QColor(0, 0, 0))
+        #     painter.drawText(5, TEXT_MARGIN + BAR_HEIGHT + 15, self.phrase)
+        # phrase masquée (résumé utilise seulement les symboles)
+        pass
 
         # ── traits verticaux FD / DF ──
         pen = QPen(QColor(0, 0, 0))
@@ -448,6 +450,17 @@ class JourCompactWidget(QWidget):
         self.stack = stack
         self.kind = kind
 
+        self.name_lbl = QLabel("")
+        self.name_lbl.setStyleSheet("font-weight:bold;")
+        if self.kind == "vie":
+            self.name_lbl.setText("Vie")
+        
+        elif self.kind == "jour":
+            self.name_lbl.setText("Journée")
+        
+        else:
+            self.name_lbl.setText("Action")
+
         # stocker les dictionnaires
         self.vie_dict = vie_dict or {}
         self.jour_dict = jour_dict or {}
@@ -461,12 +474,14 @@ class JourCompactWidget(QWidget):
         self.symbol_lbl = QLabel("")
         self.countdown_lbl = QLabel("")
         self.symbol_lbl.setStyleSheet("font-size:16px;")
-        
+        self.line_layout.addWidget(self.countdown_lbl)
+        self.line_layout.addStretch()
+       
         # Label pour afficher le texte XML sous les symboles
-        self.xml_text_lbl = QLabel("")
-        self.xml_text_lbl.setWordWrap(True)
-        self.xml_text_lbl.setStyleSheet("color: darkblue; font-size:12px;")
-        self.main_layout.addWidget(self.xml_text_lbl)
+        #self.xml_text_lbl = QLabel("")
+        #self.xml_text_lbl.setWordWrap(True)
+        #self.xml_text_lbl.setStyleSheet("color: darkblue; font-size:12px;")
+        #self.main_layout.addWidget(self.xml_text_lbl)
 
         # ── Boutons haut/bas/plus ──
         self.up_btn = QPushButton("⇧")
@@ -529,11 +544,15 @@ class JourCompactWidget(QWidget):
 
         # ── Layout principal ──
         # icône juste après le titre
-        self.line_layout.addWidget(self.title_lbl)
         self.line_layout.addWidget(self.icon_btn)
+        self.line_layout.addWidget(self.name_lbl)
         self.line_layout.addWidget(self.symbol_lbl)
-        self.line_layout.addWidget(self.countdown_lbl)
         self.line_layout.addStretch()
+        self.countdown_lbl.setAlignment(Qt.AlignRight)
+        self.line_layout.addWidget(self.countdown_lbl)
+        self.line_layout.addWidget(self.up_btn)
+        self.line_layout.addWidget(self.down_btn)
+        self.line_layout.addWidget(self.plus_btn)
         
         self.xml_text_lbl = QLabel("")         # nouveau label pour le texte XML
         self.xml_text_lbl.setWordWrap(True)
@@ -545,9 +564,7 @@ class JourCompactWidget(QWidget):
             self.line_layout.addWidget(self.pause_btn)
             self.line_layout.addWidget(self.stop_btn)
 
-        self.line_layout.addWidget(self.up_btn)
-        self.line_layout.addWidget(self.down_btn)
-        self.line_layout.addWidget(self.plus_btn)
+
 
         self.main_layout.addLayout(self.line_layout)
 
@@ -639,17 +656,25 @@ class JourCompactWidget(QWidget):
 
     # ── Affichage barre outils ──
     def toggle_mode(self):
-        """Afficher ou cacher uniquement la barre principale, sans les 3 icônes du haut."""
-        # cacher définitivement les 3 icônes
+    
         self.tools_widget.hide()
     
-        # afficher ou cacher la barre
-        if self.main_layout.indexOf(self.bar) == -1:
-            self.main_layout.addWidget(self.bar)
-            self.bar.show()
+        if not hasattr(self, "bar_container"):
+    
+            container_layout = QVBoxLayout()
+            container_layout.addWidget(self.bar)
+            container_layout.addWidget(self.xml_text_lbl)
+    
+            self.bar_container = QWidget()
+            self.bar_container.setLayout(container_layout)
+    
+            self.main_layout.addWidget(self.bar_container)
+    
+        # simplement cacher / montrer
+        if self.bar_container.isVisible():
+            self.bar_container.hide()
         else:
-            self.main_layout.removeWidget(self.bar)
-            self.bar.hide()
+            self.bar_container.show()
 
     # ── Navigation stack ──
     def go_up(self):
@@ -664,6 +689,9 @@ class JourCompactWidget(QWidget):
 
     # ── Mise à jour périodique ──
     def update_display(self):
+        
+        if not hasattr(self, "title_lbl"):
+            return
         now = datetime.datetime.now()
     
         # ── mise à jour valeur barre ──
@@ -672,12 +700,20 @@ class JourCompactWidget(QWidget):
             self.bar.set_value(hour)
     
         # ── titre ──
-        if self.kind == "vie":
-            self.title_lbl.setText(f"❤️ {now.year}")
-        elif self.kind == "jour":
-            self.title_lbl.setText("☀️" + now.strftime("%d %b"))
-        else:
-            self.title_lbl.setText("⚡")
+        # if self.kind == "vie":
+        #     self.title_lbl.setText(f"❤️ {now.year}")
+        # elif self.kind == "jour":
+        #     self.title_lbl.setText("☀️" + now.strftime("%d %b"))
+        # else:
+        #     self.title_lbl.setText("⚡")
+        # if self.kind == "vie":
+        #     self.title_lbl.setText(str(now.year))
+        
+        # elif self.kind == "jour":
+        #     self.title_lbl.setText(now.strftime("%d %b"))
+        
+        # else:
+        #     self.title_lbl.setText("")
         
         #self.title_lbl.setStyleSheet("font-size:16px; font-family: Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji;")
 
@@ -737,7 +773,7 @@ class JourCompactWidget(QWidget):
             self.countdown_lbl.setText(self.seconds_to_life_text(secs))
         else:
             self.countdown_lbl.setText(self.seconds_to_text(secs))
-
+        self.countdown_lbl.setAlignment(Qt.AlignRight)
     # ── Conversion phrase → symboles ──
     # def phrase_to_symbols(self, phrase):
     #     if not phrase:
@@ -909,29 +945,37 @@ class Window(QWidget):
         jour_col = QVBoxLayout()
         # jour_col.addLayout(jour_titre_row)
         # self.jour_compact = JourCompactWidget(self.jour_bar)
-        layout.addLayout(jour_col)
-        self.stack = QStackedWidget()       
+        layout.addLayout(jour_col)      
         # self.resume_annee = JourCompactWidget(self.vie_bar, self.stack, "vie")
         # self.resume_jour = JourCompactWidget(self.jour_bar, self.stack, "jour")
         # self.resume_action = JourCompactWidget(self.action_bar, self.stack, "action")
 
-
-        self.resume_annee = JourCompactWidget(
-            self.vie_bar, self.stack, "vie", vie_dict=self.vie_dict
-        )
-        self.resume_jour = JourCompactWidget(
-            self.jour_bar, self.stack, "jour", jour_dict=self.jour_dict
-        )
-        self.resume_action = JourCompactWidget(
-            self.action_bar, self.stack, "action", action_dict=self.action_dict
-        )
+        # self.stack = QStackedWidget()   
+        # self.resume_annee = JourCompactWidget(
+        #     self.vie_bar, self.stack, "vie", vie_dict=self.vie_dict
+        # )
+        # self.resume_jour = JourCompactWidget(
+        #     self.jour_bar, self.stack, "jour", jour_dict=self.jour_dict
+        # )
+        # self.resume_action = JourCompactWidget(
+        #     self.action_bar, self.stack, "action", action_dict=self.action_dict
+        # )
         
-        self.stack.addWidget(self.resume_annee)
-        self.stack.addWidget(self.resume_jour)
-        self.stack.addWidget(self.resume_action)
+        # self.stack.addWidget(self.resume_annee)
+        # self.stack.addWidget(self.resume_jour)
+        # self.stack.addWidget(self.resume_action)
         
-        self.stack.setCurrentIndex(1)   # journée par défaut
-        jour_col.addWidget(self.stack)
+        # self.stack.setCurrentIndex(1)   # journée par défaut
+        # jour_col.addWidget(self.stack)
+        
+        self.resume_annee = JourCompactWidget(self.vie_bar, None, "vie", vie_dict=self.vie_dict)
+        self.resume_jour = JourCompactWidget(self.jour_bar, None, "jour", jour_dict=self.jour_dict)
+        self.resume_action = JourCompactWidget(self.action_bar, None, "action", action_dict=self.action_dict)
+        
+        jour_col.addWidget(self.resume_annee)
+        jour_col.addWidget(self.resume_jour)
+        jour_col.addWidget(self.resume_action)
+        
         self.setSizePolicy(self.sizePolicy().Minimum, self.sizePolicy().Minimum)
         self.adjustSize()
 
