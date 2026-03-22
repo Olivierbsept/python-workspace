@@ -8,17 +8,14 @@ Gestion du temps — version fusionnée (BarWidget + ActionBarWidget → Unified
 """
 
 import sys
-import math
 import datetime
 import xml.etree.ElementTree as ET
 from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
-                             QLabel, QFrame, QPushButton,
+                             QLabel, QPushButton,
                              QDateEdit, QTimeEdit, QSpinBox, QDialog, QDialogButtonBox, QCalendarWidget)
 from PyQt5.QtCore import QTimer, Qt, QDate, QTime
 from PyQt5.QtGui import QPainter, QColor, QFont, QPen
 from PyQt5 import QtMultimedia
-
-from PyQt5.QtWidgets import QStackedWidget
 
 BAR_HEIGHT    = 30
 BASE3_DIGITS  = 3
@@ -121,11 +118,7 @@ class UnifiedBarWidget(QWidget):
                  fd_fraction=0.33,
                  df_fraction=0.66,
                  label_format='fraction'):
-        # label_format :
-        #   'fraction'  → affiche les fractions (ancien comportement)
-        #   'years'     → affiche la valeur en années (ex. "23.4 ans")
-        #   'hhmm'      → affiche en heures:minutes (ex. "9h30")
-        #   'timer'     → géré en interne (minutes avant/après)
+
         self.label_format = label_format
         super().__init__()
 
@@ -165,8 +158,6 @@ class UnifiedBarWidget(QWidget):
             self._tick_timer.timeout.connect(self._tick)
 
         self.setMinimumHeight(BAR_HEIGHT + 2 * TEXT_MARGIN + 20)
-        #self.setMinimumHeight(BAR_HEIGHT + 10)
-        #self.setMinimumHeight(BAR_HEIGHT + TEXT_MARGIN + 8)
         
     # ── API publique ──────────────────────────
 
@@ -262,7 +253,6 @@ class UnifiedBarWidget(QWidget):
     
         current_phrase = value_to_phrase(value, minv, maxv,
                                          self.fd_fraction, self.df_fraction)
-    
         low = value
         high = maxv
     
@@ -467,10 +457,19 @@ class JourCompactWidget(QWidget):
         self.countdown_lbl = QLabel("")
         self.symbol_lbl.setStyleSheet("font-size:16px;")
         
+        # Label texte associé à la phrase
+        self.symbol_text_lbl = QLabel("")
+        self.symbol_text_lbl.setWordWrap(True)
+        self.symbol_text_lbl.setStyleSheet("color: darkblue; font-size:12px;")
+        self.symbol_text_lbl.setAlignment(Qt.AlignCenter)
+        
+        # Ajouter sous la ligne des symboles (line_layout) dans le layout principal
+        self.main_layout.addWidget(self.symbol_text_lbl)
+        
         # Label pour afficher le texte XML sous les symboles
-        self.xml_text_lbl = QLabel("")
-        self.xml_text_lbl.setWordWrap(True)
-        self.xml_text_lbl.setStyleSheet("color: darkblue; font-size:10px;")
+        #self.xml_text_lbl = QLabel("")
+        #self.xml_text_lbl.setWordWrap(True)
+        #self.xml_text_lbl.setStyleSheet("color: darkblue; font-size:10px;")
         #self.main_layout.addWidget(self.xml_text_lbl)
 
         # ── Boutons haut/bas/plus ──
@@ -567,9 +566,9 @@ class JourCompactWidget(QWidget):
         self.update_display()
         
         # stocker les dictionnaires
-        self.vie_dict = vie_dict or {}
-        self.jour_dict = jour_dict or {}
-        self.action_dict = action_dict or {}
+        #self.vie_dict = vie_dict or {}
+        #self.jour_dict = jour_dict or {}
+        #self.action_dict = action_dict or {}
 
     # ── Fonctions pour barre, calendrier, chrono ──
     def show_bar(self):
@@ -634,9 +633,13 @@ class JourCompactWidget(QWidget):
     
         years = int(years_fraction)
         hours = int((years_fraction - years) * hours_per_year)
-        #print(f"[DEBUG] years_fraction={years_fraction}, years={years}, hours={hours, secondes=}")  # debug
-
-        return f"{years} ans {hours} h"
+        days = int (hours/24)
+        print(f"[DEBUG] years_fraction={years_fraction}, years={years}, hours={hours, seconds=}")  # debug
+        if years == 0:
+            return f"{days} jour(s)"
+        if years == 1:
+            return f"{years} an {days} jours"
+        return f"{years} ans {days} jours"
     
     def seconds_to_text(self, s):
         s = int(s)
@@ -648,15 +651,15 @@ class JourCompactWidget(QWidget):
 
     # ── Affichage barre outils ──
     def toggle_mode(self):
-        """Afficher ou cacher uniquement la barre principale."""
-        self.tools_widget.hide()
-    
+        """Afficher ou cacher uniquement la barre principale et le texte associé."""
         if self.main_layout.indexOf(self.bar) == -1:
             self.main_layout.addWidget(self.bar)
             self.bar.show()
+            self.symbol_text_lbl.show()
         else:
             self.main_layout.removeWidget(self.bar)
             self.bar.hide()
+            self.symbol_text_lbl.hide()
     
         # forcer le recalcul de la taille de la fenêtre
         self.adjustSize()
@@ -686,21 +689,12 @@ class JourCompactWidget(QWidget):
             self.bar.set_value(hour)
     
         # ── titre ──
-        #if self.kind == "vie":
-        #    self.title_lbl.setText(f"❤️ {now.year}")
-        
         if self.kind == "vie":
-            unit = "hours"   # conversion correcte ensuite
-        else:
-            unit = "hours"
-        
-        if self.kind == "jour":
+            self.title_lbl.setText(f"❤️ {now.year}")   
+        elif self.kind == "jour":
             self.title_lbl.setText("☀️" + now.strftime("%d %b"))
         else:
             self.title_lbl.setText("⚡")
-        
-        #self.title_lbl.setStyleSheet("font-size:16px; font-family: Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji;")
-
 
         # ── phrase → symboles ──
         phrase = getattr(self.bar, "phrase", "")
@@ -713,9 +707,6 @@ class JourCompactWidget(QWidget):
             f"color:{'red' if self.bar.red else 'black'}; font-size:16px"
         )
         self.symbol_lbl.setText(symbols)
-    
-        # ── texte XML correspondant sous la phrase ──
-        phrase = getattr(self.bar, "phrase", "")
 
         # Texte XML correspondant à la phrase
         if self.kind == "vie":
@@ -727,6 +718,13 @@ class JourCompactWidget(QWidget):
     
         # Mettre à jour le label dédié sous la barre
         self.xml_text_lbl.setText(text_xml)
+        
+        # Affichage texte XML uniquement si la barre est visible
+        if self.main_layout.indexOf(self.bar) != -1 and self.bar.isVisible():
+            self.symbol_text_lbl.setText(text_xml)
+            self.symbol_text_lbl.show()
+        else:
+            self.symbol_text_lbl.hide()
     
         # ── calcul temps restant ──
         if self.bar.mode == "timer":
@@ -762,14 +760,6 @@ class JourCompactWidget(QWidget):
             self.countdown_lbl.setText(self.seconds_to_life_text(secs))
         else:
             self.countdown_lbl.setText(self.seconds_to_text(secs))
-
-    # ── Conversion phrase → symboles ──
-    # def phrase_to_symbols(self, phrase):
-    #     if not phrase:
-    #         return ""
-    #     words = phrase.replace(" de la ", " ").replace(" du ", " ").split()
-    #     mapping = {"fin": "□", "milieu": "...", "début": "▲"}
-    #     return " ".join([mapping.get(w, "") for w in words])
     
     def phrase_to_symbols(self, phrase):
         if not phrase:
@@ -779,7 +769,7 @@ class JourCompactWidget(QWidget):
         words = words[::-1]  # inversion de l'ordre
     
         mapping = {"fin": "□", "milieu": "...", "début": "▲"}
-        return " ".join([mapping.get(w, "") for w in words])
+        return "".join([mapping.get(w, "") for w in words])
     
     def phrase_to_text(self, phrase):
         """Retourne le texte XML correspondant à la phrase."""
@@ -799,29 +789,11 @@ class Window(QWidget):
     def __init__(self):
         super().__init__()
 
-
-
         self.xml_dict   = {}
         self.vie_dict   = {}
         self.jour_dict  = {}
         self.action_dict = {}
         self.load_xml("phrases.xml")
-
-        # ── Boutons timer ──
-        #buttons_layout = QHBoxLayout()
-        #self.start_btn = QPushButton("▶")
-        #self.pause_btn = QPushButton("⏸")
-        #self.stop_btn  = QPushButton("■")
-
-        #for b in [self.start_btn, self.pause_btn, self.stop_btn]:
-        #    b.setFixedSize(50, 50)
-
-        #self.start_btn.setStyleSheet("color:#2ecc71; border:none; font-size:22px;")
-        #self.pause_btn.setStyleSheet("color:#f39c12; border:none; font-size:22px;")
-        #self.stop_btn.setStyleSheet( "color:#000000; border:none; font-size:22px;")
-
-        #for b in [self.start_btn, self.pause_btn, self.stop_btn]:
-        #    buttons_layout.addWidget(b)
 
         # ── Layout principal ──
         main_layout = QVBoxLayout()
@@ -829,11 +801,6 @@ class Window(QWidget):
         
         # Titre de la fenêtre avec icônes
         self.setWindowTitle("          ❤️ / ☀️ / ⚡")  # ajoute un décalage vers la droite
-
-        #title = QLabel("Gestion du temps")
-        #title.setAlignment(Qt.AlignCenter)
-        #title.setStyleSheet("font-size:18px; font-weight:bold; margin:10px;")
-        #main_layout.addWidget(title)
 
         layout = QVBoxLayout()
         main_layout.addLayout(layout)
@@ -899,10 +866,6 @@ class Window(QWidget):
             df_fraction=0.80
         )
 
-        #self.start_btn.clicked.connect(self.action_bar.start)
-        #self.pause_btn.clicked.connect(self.action_bar.pause)
-        #self.stop_btn.clicked.connect(self.action_bar.stop)
-
         # ── Ligne Vie ──
         self.vie_titre_lbl = QLabel(self._vie_titre())
         self.vie_titre_lbl.setAlignment(Qt.AlignCenter)
@@ -917,20 +880,8 @@ class Window(QWidget):
         vie_titre_row.addStretch()
         vie_col = QVBoxLayout()
         vie_col.addLayout(vie_titre_row)
-        #layout.addLayout(vie_col)
 
         # ── Ligne Journée ──
-        # self.jour_titre_lbl = QLabel(self._jour_titre())
-        # self.jour_titre_lbl.setAlignment(Qt.AlignCenter)
-        # self.btn_heures_jour = QPushButton("⏰")
-        # self.btn_heures_jour.setFixedSize(28, 28)
-        # self.btn_heures_jour.setStyleSheet("border:none; font-size:16px;")
-        # self.btn_heures_jour.clicked.connect(self._choisir_heures_jour)
-        # jour_titre_row = QHBoxLayout()
-        # jour_titre_row.addStretch()
-        # jour_titre_row.addWidget(self.jour_titre_lbl)
-        # jour_titre_row.addWidget(self.btn_heures_jour)
-        # jour_titre_row.addStretch()
         jour_col = QVBoxLayout()
         jour_col.setSpacing(2)
         jour_col.setContentsMargins(0, 0, 0, 0)
@@ -955,29 +906,6 @@ class Window(QWidget):
         self.setSizePolicy(self.sizePolicy().Minimum, self.sizePolicy().Minimum)
         self.adjustSize()
 
-        # ── Ligne Action ──
-        # self.action_titre_lbl = QLabel(self._action_titre())
-        # self.action_titre_lbl.setAlignment(Qt.AlignCenter)
-        # self.btn_duree_action = QPushButton("⏱")
-        # self.btn_duree_action.setFixedSize(28, 28)
-        # self.btn_duree_action.setStyleSheet("border:none; font-size:16px;")
-        # self.btn_duree_action.clicked.connect(self._choisir_duree_action)
-        # action_titre_row = QHBoxLayout()
-        # action_titre_row.addStretch()
-        # action_titre_row.addWidget(self.action_titre_lbl)
-        # action_titre_row.addWidget(self.btn_duree_action)
-        # action_titre_row.addStretch()
-        # action_col = QVBoxLayout()
-        # action_col.addLayout(action_titre_row)
-        # layout.addLayout(action_col)
-
-        # ── Boutons ──
-        #buttons_row = QHBoxLayout()
-        #buttons_row.addStretch()
-        #buttons_row.addLayout(buttons_layout)
-        #buttons_row.addStretch()
-        #layout.addLayout(buttons_row)
-
         # ── Panneau texte unique en bas ──
         self.texte_vie    = QLabel("")
         self.texte_jour   = QLabel("")
@@ -985,17 +913,7 @@ class Window(QWidget):
 
         for lbl in [self.texte_vie, self.texte_jour, self.texte_action]:
             lbl.setWordWrap(True)
-
-        #texte_panel = QFrame()
-        #texte_panel.setFrameStyle(QFrame.Panel | QFrame.Sunken)
-        #texte_layout = QVBoxLayout(texte_panel)
-        #texte_layout.setContentsMargins(8, 6, 8, 6)
-        #texte_layout.setSpacing(4)
-        #texte_layout.addWidget(self.texte_vie)
-        #texte_layout.addWidget(self.texte_jour)
-        #texte_layout.addWidget(self.texte_action)
-        #layout.addWidget(texte_panel)
-
+            
         # ── Init ──
         self.vie_bar.set_value(56)
         self.update_jour()
