@@ -92,27 +92,6 @@ def value_to_phrase(value, minv, maxv, fd_fraction, df_fraction):
 # ─────────────────────────────────────────────
 
 class UnifiedBarWidget(QWidget):
-    """
-    Barre de progression polyvalente.
-
-    Modes :
-      • mode='value'  — valeur poussée de l'extérieur via set_value()
-                        (ex. Vie, Journée)
-      • mode='timer'  — timer interne démarré / mis en pause / stoppé
-                        via start() / pause() / stop()
-                        (ex. Action)
-
-    Paramètres communs :
-      minv, maxv          — bornes de la plage
-      red_duration        — durée (s) d'affichage rouge après changement
-      blink_duration      — durée (s) de clignotement avant changement
-      fd_fraction         — position initiale du séparateur FD  [0..1]
-      df_fraction         — position initiale du séparateur DF  [0..1]
-
-    Paramètres spécifiques mode='timer' :
-      duration            — durée totale du timer en secondes
-    """
-
     def __init__(self, minv=0, maxv=1,
                  mode='value',
                  duration=3600,
@@ -121,71 +100,79 @@ class UnifiedBarWidget(QWidget):
                  fd_fraction=0.33,
                  df_fraction=0.66,
                  label_format='fraction',
-                 show_triangle=True):  # ← nouveau paramètre
-        self.label_format = label_format
+                 show_triangle=True):
+
         super().__init__()
 
-        self.mode          = mode
-        self.minv          = minv
-        self.maxv          = maxv
-        self.duration      = duration          # timer uniquement
-        self.red_duration  = red_duration
-        self.blink_duration = blink_duration
-        
+        # ── Paramètres ──
         self.mode = mode
         self.minv = minv
         self.maxv = maxv
         self.duration = duration
         self.red_duration = red_duration
         self.blink_duration = blink_duration
-        
         self.label_format = label_format
-        
-        # seulement afficher triangle pour Jour
-        self.triangle_fraction = 0.5
-        self.drag_triangle = False
-        self.triangle_moved = False   
-        self.show_triangle = (self.mode == 'value' and self.label_format == 'hhmm')
-        self.triangle_color_black = False
-        self.triangle_clicked = False
-        self.triangle_press_x = 0  # position initiale clic
-        self.triangle_reference_value = None  # valeur au clic
-        self.show_second_triangle = False
-        self.target_value = None  # valeur vers laquelle faire le décompte
-        
-        # ... reste du code inchangé
-
-
-
-        # État
-        self.value         = minv
-        self.elapsed       = 0                 # timer uniquement
-        self.running       = False
-        self.paused        = False
-
-        self.phrase        = ""
-        self.last_phrase   = ""
-
-        # Visuel
-        self.red     = False
-        self.blink   = False
-        self.visible = True
 
         self.fd_fraction = fd_fraction
         self.df_fraction = df_fraction
 
+        # ── Triangles ──
+        self.triangle_fraction = 0.5
+        self.triangle_clicked = False
+        self.triangle_moved = False
+        self.triangle_press_x = 0
+        self.triangle_black_value = None
+        self.triangle_reference_value = None
+        self.triangle_red_value = None
+        self.show_triangle = (show_triangle and self.mode == 'value')
+        self.show_second_triangle = False
+
+        # ── État barre ──
+        self.value = minv
+        self.elapsed = 0
+        self.running = False
+        self.paused = False
+        self.target_value = None
+
+        self.phrase = ""
+        self.last_phrase = ""
+
+        # ── Visuel ──
+        self.red = False
+        self.blink = False
+        self.visible = True
+
         self.drag_fd = False
         self.drag_df = False
+        self.drag_triangle = False
 
-        # Timers Qt
+        # ── Timers Qt ──
         self.blink_timer = QTimer()
         self.blink_timer.timeout.connect(self._toggle_visible)
-
         if self.mode == 'timer':
             self._tick_timer = QTimer()
             self._tick_timer.timeout.connect(self._tick)
 
         self.setMinimumHeight(BAR_HEIGHT + 2 * TEXT_MARGIN + 20)
+
+    # ── Méthode d’action programmée ──
+    # def add_action_programmee_clicked(self):
+    #     parent_widget = self.parent()
+    #     if not parent_widget or not hasattr(parent_widget, 'resume_action'):
+    #         return
+        
+    #     action_bar = parent_widget.resume_action_prog.bar
+
+    #     if (self.triangle_black_value is not None and
+    #         self.triangle_reference_value is not None):
+    #         # départ = triangle noir, cible = triangle rouge
+    #         action_bar.value = self.triangle_black_value
+    #         action_bar.target_value = self.triangle_reference_value
+    #         action_bar.running = True
+    #         action_bar.show()
+    #         action_bar.start()
+    #     else:
+    #         print("Triangles noir/rouge non définis : impossible de démarrer la barre")
         
     # ── API publique ──────────────────────────
 
@@ -241,34 +228,33 @@ class UnifiedBarWidget(QWidget):
             return
     
         if self.target_value is not None:
-            # calculer temps restant vers target_value
-            total_range = self.maxv - self.minv
-            if total_range == 0:
-                ratio = 1.0
-            else:
-                ratio = (self.target_value - self.value) / total_range
+            # calcul du delta vers target_value
+            delta = self.target_value - self.value
     
-            # incrémenter value proportionnellement à 1 seconde
-            self.value += (self.target_value - self.value) / 60  # ajustable selon granularité
+            # incrémenter value progressivement (ajustable selon granularité)
+            step = delta / 60  # ici 1/60ème du chemin vers la cible par tick
+            self.value += step
     
-            # arrêter quand on atteint la cible
+            # arrêter exactement à target_value
             if abs(self.value - self.target_value) < 0.01:
                 self.value = self.target_value
                 self.stop()
     
         else:
-            # comportement normal timer
+            # comportement normal timer si pas de target_value
             self.elapsed += 1
             if self.duration > 0:
                 self.value = self.elapsed / 60.0
     
-        # mise à jour phrase et blink
+        # mise à jour phrase et clignotement
         minutes = self.value
         max_minutes = self.duration / 60.0 if self.duration else 60
         self._update_phrase(minutes, 0, max_minutes)
         secs = self._seconds_to_next_change(minutes, 0, max_minutes, unit='seconds')
         self._refresh_blink(secs)
         self.update()
+        
+        
 
     def _update_phrase(self, value, minv, maxv):
         new_phrase = value_to_phrase(value, minv, maxv,
@@ -448,10 +434,10 @@ class UnifiedBarWidget(QWidget):
                 QPoint(center_x + size, top_y)
             )
         
-        # ── "1" au-dessus du triangle principal (TOUJOURS visible) ──
-        painter.setFont(QFont("Arial", 10))
-        painter.setPen(QColor(0, 0, 0))
-        painter.drawText(center_x - 4, top_y - 2, "1")
+            # ── "1" au-dessus du triangle principal (TOUJOURS visible) ──
+            painter.setFont(QFont("Arial", 10))
+            painter.setPen(QColor(0, 0, 0))
+            painter.drawText(center_x - 4, top_y - 2, "1")
                     
             # ── deuxième triangle (+1h) ──
         if self.show_second_triangle and self.triangle_reference_value is not None:
@@ -597,14 +583,15 @@ class UnifiedBarWidget(QWidget):
         
             self.update()
 
-
     def mouseReleaseEvent(self, event):
         self.drag_fd = False
         self.drag_df = False
     
         if self.drag_triangle:
+            # calcul de la valeur correspondant au triangle déplacé
             value_at_triangle = self.minv + self.triangle_fraction * (self.maxv - self.minv)
     
+            # mise à jour du label de countdown
             secs = self._seconds_to_next_change(
                 value_at_triangle,
                 self.minv,
@@ -618,37 +605,74 @@ class UnifiedBarWidget(QWidget):
                     parent_widget.seconds_to_text(secs)
                 )
     
-            # ✅ logique fiable avec seuil
+            # logique triangle cliqué vs déplacé
             if not self.triangle_moved:
                 self.triangle_clicked = True
-            
+    
                 # mémoriser la valeur du triangle
-                self.triangle_reference_value = (
-                    self.minv + self.triangle_fraction * (self.maxv - self.minv)
-                )
-            
-                self.show_second_triangle = True
+                self.triangle_reference_value = value_at_triangle
+    
+                # si c'est le premier triangle (noir)
+                if not hasattr(self, 'triangle_black_value') or self.triangle_black_value is None:
+                    self.triangle_black_value = value_at_triangle
+                    self.show_second_triangle = True
+                else:
+                    # sinon c'est le rouge
+                    self.triangle_red_value = value_at_triangle
             else:
                 self.triangle_clicked = False
-                self.show_second_triangle = False
-        
-        if self.show_second_triangle and self.triangle_reference_value is not None:
+    
+        # ✅ gérer la barre d'Action programmée
+        if hasattr(self, 'triangle_black_value') and hasattr(self, 'triangle_red_value'):
             parent_widget = self.parent()
             if parent_widget and hasattr(parent_widget, 'resume_action'):
                 action_bar = parent_widget.resume_action.bar
-        
-                # valeur cible = triangle noir
-                target_value = self.minv + self.triangle_fraction * (self.maxv - self.minv)
-                action_bar.target_value = target_value
-        
-                # démarrer le décompte
+    
+                # valeur de départ = triangle noir
+                action_bar.value = self.triangle_black_value
+                # valeur cible = triangle rouge
+                action_bar.target_value = self.triangle_red_value
+    
+                # démarrer la barre
                 action_bar.running = True
                 action_bar.start()
-        
+    
         self.drag_triangle = False
         self.triangle_moved = False
         self.update()
-        
+#        
+    def add_action_programmee_clicked(self):
+        parent_widget = self.parent()
+        if not parent_widget or not hasattr(parent_widget, 'resume_action'):
+            return
+    
+        action_bar = parent_widget.resume_action.bar
+    
+        if (self.triangle_black_value is not None and
+            self.triangle_reference_value is not None):
+    
+            # valeur de départ
+            action_bar.value = self.triangle_black_value
+    
+            # cible
+            action_bar.target_value = self.triangle_reference_value
+    
+            # 🔥 synchronisation avec le timer
+            if action_bar.maxv != action_bar.minv:
+                ratio = ((action_bar.value - action_bar.minv) /
+                         (action_bar.maxv - action_bar.minv))
+                action_bar.elapsed = ratio * action_bar.duration
+    
+            action_bar.running = True
+    
+            action_bar.show()
+            action_bar.raise_()
+            action_bar.update()
+            action_bar.start()
+    
+        else:
+            print("Triangles non définis")
+
 
 #
 class JourCompactWidget(QWidget):
@@ -664,7 +688,6 @@ class JourCompactWidget(QWidget):
         self.jour_dict = jour_dict or {}
         self.action_dict = action_dict or {}
 
-        #self.main_layout = QVBoxLayout(self)
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(2, 2, 2, 2)
         self.main_layout.setSpacing(2)
@@ -676,13 +699,10 @@ class JourCompactWidget(QWidget):
         self.countdown_lbl = QLabel("")
         self.symbol_lbl.setStyleSheet("font-size:16px;")
         
-        # Label texte associé à la phrase
         self.symbol_text_lbl = QLabel("")
         self.symbol_text_lbl.setWordWrap(True)
         self.symbol_text_lbl.setStyleSheet("color: darkblue; font-size:12px;")
         self.symbol_text_lbl.setAlignment(Qt.AlignCenter)
-        
-        # Ajouter sous la ligne des symboles (line_layout) dans le layout principal
         self.main_layout.addWidget(self.symbol_text_lbl)
 
         # ── Boutons haut/bas/plus ──
@@ -696,11 +716,10 @@ class JourCompactWidget(QWidget):
             self.up_btn.hide()
             self.down_btn.hide()
 
-        # ── Icône de la barre (à droite du titre) ──
+        # ── Icône de la barre ──
         self.icon_btn = QPushButton()
         self.icon_btn.setFixedSize(32, 32)
         self.icon_btn.setStyleSheet("border:none;font-size:18px")
-
         if self.kind == "vie":
             self.icon_btn.setText("📅")
             self.icon_btn.clicked.connect(self.show_calendar)
@@ -711,7 +730,7 @@ class JourCompactWidget(QWidget):
             self.icon_btn.setText("⏱")
             self.icon_btn.clicked.connect(self.show_bar)
 
-        # ── Barre outils (cachée par défaut) ──
+        # ── Barre outils ──
         self.tools_layout = QHBoxLayout()
         self.cal_btn = QPushButton("📅")
         self.day_btn = QPushButton("🗓")
@@ -729,38 +748,36 @@ class JourCompactWidget(QWidget):
         # ── Connexions ──
         self.up_btn.clicked.connect(self.go_up)
         self.down_btn.clicked.connect(self.go_down)
-        self.plus_btn.clicked.connect(self.toggle_mode)
+
+        # **Connexion corrigée du bouton '+'**
+        self.plus_btn.clicked.connect(self.on_plus_clicked)
 
         self.cal_btn.clicked.connect(self.show_calendar)
         self.day_btn.clicked.connect(self.show_day_picker)
         self.chrono_btn.clicked.connect(self.show_bar)
 
-        # ── Boutons action (petits) ──
+        # ── Boutons action (timer) ──
         self.start_btn = QPushButton("▶")
         self.pause_btn = QPushButton("⏸")
         self.stop_btn = QPushButton("■")
         for b in [self.start_btn, self.pause_btn, self.stop_btn]:
             b.setFixedSize(22, 22)
             b.setStyleSheet("border:none;font-size:14px")
-
         if self.bar.mode == "timer":
             self.start_btn.clicked.connect(self.bar.start)
             self.pause_btn.clicked.connect(self.bar.pause)
             self.stop_btn.clicked.connect(self.bar.stop)
-#
 
-#
         # ── Layout principal ──
-        # icône juste après le titre
         self.line_layout.addWidget(self.title_lbl)
         self.line_layout.addWidget(self.icon_btn)
         self.line_layout.addWidget(self.symbol_lbl)
         self.line_layout.addWidget(self.countdown_lbl)
         self.line_layout.addStretch()
-        
-        self.xml_text_lbl = QLabel("")         # nouveau label pour le texte XML
+
+        self.xml_text_lbl = QLabel("")
         self.xml_text_lbl.setWordWrap(True)
-        self.xml_text_lbl.setStyleSheet("color: darkblue; font-size:12px;")  
+        self.xml_text_lbl.setStyleSheet("color: darkblue; font-size:12px;")
         self.main_layout.addWidget(self.xml_text_lbl)
 
         if self.bar.mode == "timer":
@@ -771,7 +788,6 @@ class JourCompactWidget(QWidget):
         self.line_layout.addWidget(self.up_btn)
         self.line_layout.addWidget(self.down_btn)
         self.line_layout.addWidget(self.plus_btn)
-
         self.main_layout.addLayout(self.line_layout)
 
         # ── Timer interne ──
@@ -780,10 +796,20 @@ class JourCompactWidget(QWidget):
         self.timer.start(500)
         self.update_display()
         
-        # stocker les dictionnaires
-        #self.vie_dict = vie_dict or {}
-        #self.jour_dict = jour_dict or {}
-        #self.action_dict = action_dict or {}
+        self.main_layout.addWidget(self.bar)
+
+    # ── Méthode corrigée pour le bouton '+' ──
+    def on_plus_clicked(self):
+        """
+        Affiche la barre si cachée et déclenche l'action programmée.
+        """
+        if self.main_layout.indexOf(self.bar) == -1:
+            self.main_layout.addWidget(self.bar)
+            self.bar.show()
+            self.symbol_text_lbl.show()
+
+        # Appel sécurisé de la méthode de la barre
+        self.bar.add_action_programmee_clicked()
 
     # ── Fonctions pour barre, calendrier, chrono ──
     def show_bar(self):
@@ -973,24 +999,28 @@ class JourCompactWidget(QWidget):
         )
         self.countdown_lbl.setText(countdown_text)
     
-        # ── afficher le décompte dans le résumé action si triangle rouge créé ──
-        if self.kind == "action":
-            if getattr(self, "show_second_triangle", False) and getattr(self.bar, "triangle_reference_value", None) is not None:
-                # triangle noir principal
-                end_value = self.bar.minv + self.bar.triangle_fraction * (self.bar.maxv - self.bar.minv)
-                # triangle rouge secondaire
-                start_value = self.bar.triangle_reference_value
+        # ── résumé Action programmée basé sur triangles noir/rouge ──
+        if self.kind == "action_prog":
+            triangle_start = getattr(self.bar, "triangle_black_value", None)
+            triangle_end = getattr(self.bar, "triangle_red_value", None)
     
-                remaining_hours = max(end_value - start_value, 0)
-                secs = remaining_hours * 3600  # convertir en secondes
-    
-                if hasattr(self, "action_summary_lbl") and self.action_summary_lbl is not None:
-                    self.action_summary_lbl.setText(self.seconds_to_text(secs))
-                    self.action_summary_lbl.show()
+            if triangle_start is not None and triangle_end is not None:
+                # calcul temps restant entre triangles
+                remaining_hours = max(triangle_end - triangle_start, 0)
+                secs = remaining_hours * 3600
+                if hasattr(self, "action_prog_summary_lbl") and self.action_prog_summary_lbl is not None:
+                    self.action_prog_summary_lbl.setText(self.seconds_to_text(secs))
+                    self.action_prog_summary_lbl.show()
             else:
-                if hasattr(self, "action_summary_lbl") and self.action_summary_lbl is not None:
-                    self.action_summary_lbl.hide()
-
+                if hasattr(self, "action_prog_summary_lbl") and self.action_prog_summary_lbl is not None:
+                    self.action_prog_summary_lbl.hide()
+    
+        # ── résumé Action indépendant des triangles ──
+        elif self.kind == "action":
+            if hasattr(self, "action_summary_lbl") and self.action_summary_lbl is not None:
+                # ne dépend plus des triangles, donc on masque ou met à jour selon la valeur propre
+                self.action_summary_lbl.setText(self.seconds_to_text(secs))
+                self.action_summary_lbl.show()
     
     def phrase_to_symbols(self, phrase):
         if not phrase:
@@ -1086,7 +1116,21 @@ class Window(QWidget):
             blink_duration=JOUR_BLINK_DURATION,
             label_format='hhmm'
         )
-
+        #
+        self.action_prog_bar = UnifiedBarWidget(
+            minv=0, maxv=60,
+            mode='timer',          # ← IMPORTANT
+            duration=60*60,        # durée totale en secondes
+            red_duration=0,
+            blink_duration=0,
+            label_format='hhmm',
+            show_triangle=False
+        )
+        self.triangle_black_value = None  # début action programmée
+        self.triangle_red_value   = None  # fin action programmée
+        self.target_value         = None  # valeur vers laquelle le timer doit aller
+        self.running              = False
+        
         # ── Barre action (mode timer) ──
         self.action_bar = UnifiedBarWidget(
             minv=0, maxv=60,
@@ -1118,8 +1162,9 @@ class Window(QWidget):
         jour_col = QVBoxLayout()
         jour_col.setSpacing(2)
         jour_col.setContentsMargins(0, 0, 0, 0)
-        # jour_col.addLayout(jour_titre_row)
-        # self.jour_compact = JourCompactWidget(self.jour_bar)
+        
+        #jour_col.addWidget(self.action_prog_bar)
+        
         layout.addLayout(jour_col)
 
         self.resume_annee = JourCompactWidget(
@@ -1128,12 +1173,24 @@ class Window(QWidget):
         self.resume_jour = JourCompactWidget(
             self.jour_bar, None, "jour", jour_dict=self.jour_dict
         )
+        #
+        self.resume_action_prog = JourCompactWidget(
+            self.action_prog_bar,
+            None,
+            kind="action_prog",
+            action_dict=self.action_dict  # ou dictionnaire spécifique si besoin
+        )
+        # Connexion du bouton + du résumé Action programmée
+        
+        self.resume_action_prog.plus_btn.clicked.connect(self.resume_action_prog.toggle_mode)
+        #
         self.resume_action = JourCompactWidget(
             self.action_bar, None, "action", action_dict=self.action_dict
         )
         
         jour_col.addWidget(self.resume_annee)
-        jour_col.addWidget(self.resume_jour)
+        jour_col.addWidget(self.resume_jour)       
+        jour_col.addWidget(self.resume_action_prog)  # <-- le nouveau résumé
         jour_col.addWidget(self.resume_action)
         
         self.setSizePolicy(self.sizePolicy().Minimum, self.sizePolicy().Minimum)
