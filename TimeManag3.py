@@ -154,25 +154,6 @@ class UnifiedBarWidget(QWidget):
             self._tick_timer.timeout.connect(self._tick)
 
         self.setMinimumHeight(BAR_HEIGHT + 2 * TEXT_MARGIN + 20)
-
-    # ── Méthode d’action programmée ──
-    # def add_action_programmee_clicked(self):
-    #     parent_widget = self.parent()
-    #     if not parent_widget or not hasattr(parent_widget, 'resume_action'):
-    #         return
-        
-    #     action_bar = parent_widget.resume_action_prog.bar
-
-    #     if (self.triangle_black_value is not None and
-    #         self.triangle_reference_value is not None):
-    #         # départ = triangle noir, cible = triangle rouge
-    #         action_bar.value = self.triangle_black_value
-    #         action_bar.target_value = self.triangle_reference_value
-    #         action_bar.running = True
-    #         action_bar.show()
-    #         action_bar.start()
-    #     else:
-    #         print("Triangles noir/rouge non définis : impossible de démarrer la barre")
         
     # ── API publique ──────────────────────────
 
@@ -253,18 +234,16 @@ class UnifiedBarWidget(QWidget):
         secs = self._seconds_to_next_change(minutes, 0, max_minutes, unit='seconds')
         self._refresh_blink(secs)
         self.update()
-        
-        
 
     def _update_phrase(self, value, minv, maxv):
         new_phrase = value_to_phrase(value, minv, maxv,
                                      self.fd_fraction, self.df_fraction)
         if new_phrase != self.last_phrase:
             if self.last_phrase:
-                try:
-                    QtMultimedia.QSound.play("/System/Library/Sounds/Glass.aiff")
-                except Exception:
-                    pass
+                #try:
+                #   QtMultimedia.QSound.play("/System/Library/Sounds/Glass.aiff")
+                #except Exception:
+                #    pass
                 # arrêter le blink : on vient de franchir la frontière
                 self.stop_blink()
                 # passer en rouge pour red_duration secondes
@@ -615,65 +594,74 @@ class UnifiedBarWidget(QWidget):
                 # si c'est le premier triangle (noir)
                 if not hasattr(self, 'triangle_black_value') or self.triangle_black_value is None:
                     self.triangle_black_value = value_at_triangle
+                    self.triangle_red_value = value_at_triangle +1
                     self.show_second_triangle = True
                 else:
                     # sinon c'est le rouge
-                    self.triangle_red_value = value_at_triangle
+                    self.triangle_red_value = self.triangle_black_value +1
             else:
                 self.triangle_clicked = False
     
-        # ✅ gérer la barre d'Action programmée
-        if hasattr(self, 'triangle_black_value') and hasattr(self, 'triangle_red_value'):
-            parent_widget = self.parent()
-            if parent_widget and hasattr(parent_widget, 'resume_action'):
-                action_bar = parent_widget.resume_action.bar
-    
-                # valeur de départ = triangle noir
-                action_bar.value = self.triangle_black_value
-                # valeur cible = triangle rouge
-                action_bar.target_value = self.triangle_red_value
-    
-                # démarrer la barre
-                action_bar.running = True
-                action_bar.start()
+            # ✅ gérer la barre d'Action programmée
+            if not self.triangle_moved and hasattr(self, 'triangle_black_value') and hasattr(self, 'triangle_red_value'):
+                parent_widget = self.parent().parent()
+                if parent_widget and hasattr(parent_widget, 'action_prog_bar'):
+                    action_prog_bar = parent_widget.action_prog_bar
+                    #action_prog_bar.duration = 1
+        
+                    now = datetime.datetime.now()
+                    current_hour = now.hour + now.minute / 60 + now.second / 3600
+                    
+                    start = self.triangle_black_value
+                    end   = self.triangle_red_value
+                    action_prog_bar.minv = start
+                    action_prog_bar.maxv = end
+
+                    if end > start:
+            
+                        # 🧊 AVANT le début → barre vide
+                        if current_hour < start:
+                            action_prog_bar.elapsed = 0
+            
+                            remaining_seconds = int((start - current_hour) * 3600)
+                            print(f"⏳ Avant start → {remaining_seconds}s")
+            
+                        # 🚀 PENDANT → progression normale
+                        elif start <= current_hour <= end:
+                            ratio = (current_hour - start) / (end - start)
+                            ratio = max(0.0, min(1.0, ratio))
+            
+                            action_prog_bar.elapsed = ratio * action_prog_bar.duration
+            
+                            remaining_seconds = int((end - current_hour) * 3600)
+                            print(f"▶ En cours → {remaining_seconds}s")
+            
+                        # 🟥 APRÈS → barre pleine
+                        else:
+                            action_prog_bar.elapsed = action_prog_bar.duration
+            
+                            remaining_seconds = 0
+                            print("✅ Terminé")
+            
+                    # démarrer la barre
+                    action_prog_bar.running = True
+                    action_prog_bar.show()
+                    action_prog_bar.raise_()
+                    action_prog_bar.update()
+                    action_prog_bar.start()
     
         self.drag_triangle = False
         self.triangle_moved = False
         self.update()
-#        
-    def add_action_programmee_clicked(self):
-        parent_widget = self.parent()
-        if not parent_widget or not hasattr(parent_widget, 'resume_action'):
-            return
-    
-        action_bar = parent_widget.resume_action.bar
-    
-        if (self.triangle_black_value is not None and
-            self.triangle_reference_value is not None):
-    
-            # valeur de départ
-            action_bar.value = self.triangle_black_value
-    
-            # cible
-            action_bar.target_value = self.triangle_reference_value
-    
-            # 🔥 synchronisation avec le timer
-            if action_bar.maxv != action_bar.minv:
-                ratio = ((action_bar.value - action_bar.minv) /
-                         (action_bar.maxv - action_bar.minv))
-                action_bar.elapsed = ratio * action_bar.duration
-    
-            action_bar.running = True
-    
-            action_bar.show()
-            action_bar.raise_()
-            action_bar.update()
-            action_bar.start()
-    
-        else:
-            print("Triangles non définis")
 
-
+                                
+                    #print("\n=== DEBUG TRIANGLE ===")
+                    #print(f"triangle_fraction = {self.triangle_fraction}")
+                    #print(f"minv = {action_prog_bar.minv}")
+                    #print(f"maxv = {action_prog_bar.maxv}")
+                    #print(f"value_at_triangle noir = {self.triangle_black_value}")
+                    #print(f"value_at_triangle rouge = {self.triangle_red_value}")
+                    #print("=====================\n")
 #
 class JourCompactWidget(QWidget):
     def __init__(self, bar_widget, stack=None, kind="jour",
@@ -809,7 +797,7 @@ class JourCompactWidget(QWidget):
             self.symbol_text_lbl.show()
 
         # Appel sécurisé de la méthode de la barre
-        self.bar.add_action_programmee_clicked()
+        #self.bar.add_action_programmee_clicked()
 
     # ── Fonctions pour barre, calendrier, chrono ──
     def show_bar(self):
@@ -1000,27 +988,50 @@ class JourCompactWidget(QWidget):
         self.countdown_lbl.setText(countdown_text)
     
         # ── résumé Action programmée basé sur triangles noir/rouge ──
+        # if self.kind == "action_prog":
+        #     triangle_start = getattr(self.bar, "triangle_black_value", None)
+        #     triangle_end = getattr(self.bar, "triangle_red_value", None)
+    
+        #     if triangle_start is not None and triangle_end is not None:
+        #         # calcul temps restant entre triangles
+        #         remaining_hours = max(triangle_end - triangle_start, 0)
+        #         secs = remaining_hours * 3600
+        #         if hasattr(self, "action_prog_summary_lbl") and self.action_prog_summary_lbl is not None:
+        #             self.action_prog_summary_lbl.setText(self.seconds_to_text(secs))
+        #             self.action_prog_summary_lbl.show()
+        #     else:
+        #         if hasattr(self, "action_prog_summary_lbl") and self.action_prog_summary_lbl is not None:
+        #             self.action_prog_summary_lbl.hide()
+    
+        # # ── résumé Action indépendant des triangles ──
+        # elif self.kind == "action":
+        #     if hasattr(self, "action_summary_lbl") and self.action_summary_lbl is not None:
+        #         # ne dépend plus des triangles, donc on masque ou met à jour selon la valeur propre
+        #         self.action_summary_lbl.setText(self.seconds_to_text(secs))
+        #         self.action_summary_lbl.show()
         if self.kind == "action_prog":
-            triangle_start = getattr(self.bar, "triangle_black_value", None)
-            triangle_end = getattr(self.bar, "triangle_red_value", None)
-    
-            if triangle_start is not None and triangle_end is not None:
-                # calcul temps restant entre triangles
-                remaining_hours = max(triangle_end - triangle_start, 0)
-                secs = remaining_hours * 3600
-                if hasattr(self, "action_prog_summary_lbl") and self.action_prog_summary_lbl is not None:
-                    self.action_prog_summary_lbl.setText(self.seconds_to_text(secs))
-                    self.action_prog_summary_lbl.show()
+            now = datetime.datetime.now()
+            current_hour = (now.hour + now.minute / 60 + now.second / 3600)
+        
+            start = self.bar.minv
+            end   = self.bar.maxv
+        
+            if current_hour < start:
+                secs = int((start - current_hour) * 3600)
+                prefix = "⏳"
+            elif current_hour <= end:
+                secs = int((end - current_hour) * 3600)
+                prefix = "⚡"
             else:
-                if hasattr(self, "action_prog_summary_lbl") and self.action_prog_summary_lbl is not None:
-                    self.action_prog_summary_lbl.hide()
-    
-        # ── résumé Action indépendant des triangles ──
-        elif self.kind == "action":
-            if hasattr(self, "action_summary_lbl") and self.action_summary_lbl is not None:
-                # ne dépend plus des triangles, donc on masque ou met à jour selon la valeur propre
-                self.action_summary_lbl.setText(self.seconds_to_text(secs))
-                self.action_summary_lbl.show()
+                secs = 0
+                prefix = "✅"
+        
+            txt = self.seconds_to_text(secs)
+            #self.value_lbl.setText(f"{prefix} {txt}")
+            countdown_text = f"{prefix} {txt}"
+            self.countdown_lbl.setText(countdown_text)
+            #print(f"minv = {start}")
+            #print(f"maxv = {end}")
     
     def phrase_to_symbols(self, phrase):
         if not phrase:
@@ -1118,7 +1129,7 @@ class Window(QWidget):
         )
         #
         self.action_prog_bar = UnifiedBarWidget(
-            minv=0, maxv=60,
+            minv=0, maxv=1,
             mode='timer',          # ← IMPORTANT
             duration=60*60,        # durée totale en secondes
             red_duration=0,
