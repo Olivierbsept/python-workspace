@@ -562,13 +562,29 @@ class UnifiedBarWidget(QWidget):
         
             self.update()
 
+
     def mouseReleaseEvent(self, event):
+        print("NEW start =", self.minv)
+        print("NEW end =", self.maxv)
+        
         self.drag_fd = False
         self.drag_df = False
     
         if self.drag_triangle:
             # calcul de la valeur correspondant au triangle déplacé
             value_at_triangle = self.minv + self.triangle_fraction * (self.maxv - self.minv)
+            
+            parent_widget = self.parent().parent()
+            action_prog_bar = parent_widget.action_prog_bar
+            action_prog_bar.minv = value_at_triangle
+            action_prog_bar.maxv = value_at_triangle+1
+            print("\n=== DEBUG TRIANGLE ===")
+            #print(f"triangle_fraction = {self.triangle_fraction}")
+            print(f"minv = {action_prog_bar.minv}")
+            print(f"maxv = {action_prog_bar.maxv}")
+            #print(f"value_at_triangle noir = {self.triangle_black_value}")
+            #rint(f"value_at_triangle rouge = {self.triangle_red_value}")
+            print("=====================\n")
     
             # mise à jour du label de countdown
             secs = self._seconds_to_next_change(
@@ -596,9 +612,15 @@ class UnifiedBarWidget(QWidget):
                     self.triangle_black_value = value_at_triangle
                     self.triangle_red_value = value_at_triangle +1
                     self.show_second_triangle = True
+
                 else:
                     # sinon c'est le rouge
                     self.triangle_red_value = self.triangle_black_value +1
+                    
+                    start = self.triangle_black_value
+                    end   = self.triangle_red_value
+
+
             else:
                 self.triangle_clicked = False
     
@@ -607,7 +629,6 @@ class UnifiedBarWidget(QWidget):
                 parent_widget = self.parent().parent()
                 if parent_widget and hasattr(parent_widget, 'action_prog_bar'):
                     action_prog_bar = parent_widget.action_prog_bar
-                    #action_prog_bar.duration = 1
         
                     now = datetime.datetime.now()
                     current_hour = now.hour + now.minute / 60 + now.second / 3600
@@ -616,7 +637,16 @@ class UnifiedBarWidget(QWidget):
                     end   = self.triangle_red_value
                     action_prog_bar.minv = start
                     action_prog_bar.maxv = end
-
+                    
+                    print("\n=== DEBUG TRIANGLE ===")
+                    #print(f"triangle_fraction = {self.triangle_fraction}")
+                    #print(f"minv = {action_prog_bar.minv}")
+                    #print(f"maxv = {action_prog_bar.maxv}")
+                    print(f"value_at_triangle noir = {self.triangle_black_value}")
+                    print(f"value_at_triangle rouge = {self.triangle_red_value}")
+                    print("=====================\n")
+                    
+                    action_prog_bar.elapsed =0
                     if end > start:
             
                         # 🧊 AVANT le début → barre vide
@@ -654,14 +684,6 @@ class UnifiedBarWidget(QWidget):
         self.triangle_moved = False
         self.update()
 
-                                
-                    #print("\n=== DEBUG TRIANGLE ===")
-                    #print(f"triangle_fraction = {self.triangle_fraction}")
-                    #print(f"minv = {action_prog_bar.minv}")
-                    #print(f"maxv = {action_prog_bar.maxv}")
-                    #print(f"value_at_triangle noir = {self.triangle_black_value}")
-                    #print(f"value_at_triangle rouge = {self.triangle_red_value}")
-                    #print("=====================\n")
 #
 class JourCompactWidget(QWidget):
     def __init__(self, bar_widget, stack=None, kind="jour",
@@ -987,28 +1009,6 @@ class JourCompactWidget(QWidget):
         )
         self.countdown_lbl.setText(countdown_text)
     
-        # ── résumé Action programmée basé sur triangles noir/rouge ──
-        # if self.kind == "action_prog":
-        #     triangle_start = getattr(self.bar, "triangle_black_value", None)
-        #     triangle_end = getattr(self.bar, "triangle_red_value", None)
-    
-        #     if triangle_start is not None and triangle_end is not None:
-        #         # calcul temps restant entre triangles
-        #         remaining_hours = max(triangle_end - triangle_start, 0)
-        #         secs = remaining_hours * 3600
-        #         if hasattr(self, "action_prog_summary_lbl") and self.action_prog_summary_lbl is not None:
-        #             self.action_prog_summary_lbl.setText(self.seconds_to_text(secs))
-        #             self.action_prog_summary_lbl.show()
-        #     else:
-        #         if hasattr(self, "action_prog_summary_lbl") and self.action_prog_summary_lbl is not None:
-        #             self.action_prog_summary_lbl.hide()
-    
-        # # ── résumé Action indépendant des triangles ──
-        # elif self.kind == "action":
-        #     if hasattr(self, "action_summary_lbl") and self.action_summary_lbl is not None:
-        #         # ne dépend plus des triangles, donc on masque ou met à jour selon la valeur propre
-        #         self.action_summary_lbl.setText(self.seconds_to_text(secs))
-        #         self.action_summary_lbl.show()
         if self.kind == "action_prog":
             now = datetime.datetime.now()
             current_hour = (now.hour + now.minute / 60 + now.second / 3600)
@@ -1025,9 +1025,14 @@ class JourCompactWidget(QWidget):
             else:
                 secs = 0
                 prefix = "✅"
-        
+            
+            if end > start :
+                ratio = (current_hour - start)/(end-start)
+                ratio = max(0.0,min(1.0, ratio))
+                self.bar.elapsed = ratio * self.bar.duration
+                self.bar.update()
+
             txt = self.seconds_to_text(secs)
-            #self.value_lbl.setText(f"{prefix} {txt}")
             countdown_text = f"{prefix} {txt}"
             self.countdown_lbl.setText(countdown_text)
             #print(f"minv = {start}")
@@ -1137,6 +1142,7 @@ class Window(QWidget):
             label_format='hhmm',
             show_triangle=False
         )
+        self.action_prog_bar.elapsed = 0
         self.triangle_black_value = None  # début action programmée
         self.triangle_red_value   = None  # fin action programmée
         self.target_value         = None  # valeur vers laquelle le timer doit aller
