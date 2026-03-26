@@ -1132,7 +1132,7 @@ class Window(QWidget):
             self.action_bar.duration = minutes * 60
             # remettre à zéro si le timer tourne
             self.action_bar.stop()
-            self.action_titre_lbl.setText(self._action_titre())
+            #self.action_titre_lbl.setText(self._action_titre()) //window has no attribute 'action_titre_lbl'
 
     # ── XML ──
 
