@@ -547,7 +547,16 @@ class UnifiedBarWidget(QWidget):
                 self.set_value(self.value)
             else:
                 self.update()
-                
+        #
+        main_widget = self.parent().parent()
+        action_prog_bar = getattr(main_widget, "action_prog_bar", None)
+        if self.drag_fd or self.drag_df:
+            main_widget = self.parent().parent()
+            action_prog_bar = getattr(main_widget, "action_prog_bar", None)
+            if action_prog_bar:
+                # On met à jour uniquement l'affichage de la fraction (peinture + labels)
+                self.update()  # ça suffit pour que FD/DF se déplacent et que les heures s'affichent correctement
+        #        
         if self.drag_triangle:
             dx = abs(event.x() - self.triangle_press_x)
         
@@ -568,20 +577,23 @@ class UnifiedBarWidget(QWidget):
     
         self.drag_fd = False
         self.drag_df = False
-    
+        
+        parent_widget = self.parent()
+        main_widget = self.parent().parent()
+        action_prog_bar = getattr(main_widget, "action_prog_bar", None)
+        #
+        # Conversion finale en heures pour action_prog_bar
+        if action_prog_bar:
+
+            action_prog_bar._update_phrase(
+                action_prog_bar.value,
+                action_prog_bar.minv,
+                action_prog_bar.maxv
+            )
+            action_prog_bar.update()
+            #    
         if self.drag_triangle:
             value_at_triangle = self.minv + self.triangle_fraction * (self.maxv - self.minv)
-    
-            parent_widget = self.parent()
-            main_widget = self.parent().parent()
-    
-            action_prog_bar = getattr(main_widget, "action_prog_bar", None)
-    
-            print("\n=== DEBUG TRIANGLE ===")
-            print(f"value_at_triangle = {value_at_triangle}")
-            print(f"triangle_moved = {self.triangle_moved}")
-            print("=====================\n")
-    
             # ==============================
             # 🖱️ CAS 1 : CLICK (pas bougé)
             # ==============================
@@ -621,11 +633,7 @@ class UnifiedBarWidget(QWidget):
                     # recalage immédiat de la value
                     now = datetime.datetime.now()
                     current_hour = now.hour + now.minute / 60 + now.second / 3600
-                    
                     action_prog_bar.value = current_hour
-    
-                    now = datetime.datetime.now()
-                    current_hour = now.hour + now.minute / 60 + now.second / 3600
     
                     if end > start:
                         if current_hour < start:
@@ -643,8 +651,7 @@ class UnifiedBarWidget(QWidget):
                             remaining_seconds = 0
     
                     now = datetime.datetime.now()
-                    current_hour = now.hour + now.minute / 60 + now.second / 3600
-                    
+                    current_hour = now.hour + now.minute / 60 + now.second / 3600    
                     action_prog_bar.value = current_hour
                     
                     action_prog_bar._update_phrase(
