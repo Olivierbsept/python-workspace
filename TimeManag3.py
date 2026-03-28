@@ -225,14 +225,13 @@ class UnifiedBarWidget(QWidget):
             # comportement normal timer si pas de target_value
             self.elapsed += 1
             if self.duration > 0:
-                self.value = self.elapsed / 60.0
+                #self.value = self.elapsed / 60.0
+                self.value = self.minv + (self.elapsed / self.duration) * (self.maxv - self.minv)
     
         # mise à jour phrase et clignotement
-        minutes = self.value
-        max_minutes = self.duration / 60.0 if self.duration else 60
-        self._update_phrase(minutes, 0, max_minutes)
-        secs = self._seconds_to_next_change(minutes, 0, max_minutes, unit='seconds')
-        self._refresh_blink(secs)
+        self._update_phrase(self.value, self.minv, self.maxv)
+        #secs = self._seconds_to_next_change(minutes, 0, max_minutes, unit='seconds')
+        #self._refresh_blink(secs)
         self.update()
 
     def _update_phrase(self, value, minv, maxv):
@@ -251,6 +250,7 @@ class UnifiedBarWidget(QWidget):
                 QTimer.singleShot(self.red_duration * 1000, self._stop_red)
             self.last_phrase = new_phrase
         self.phrase = new_phrase
+        #print(value, minv, maxv)
 
     def _refresh_blink(self, seconds_to_change):
         """Clignotement UNIQUEMENT si pas en phase rouge."""
@@ -562,132 +562,129 @@ class UnifiedBarWidget(QWidget):
         
             self.update()
 
-
     def mouseReleaseEvent(self, event):
         print("NEW start =", self.minv)
-        print("NEW end =", self.maxv)
-        
+        print("NEW end   =", self.maxv)
+    
         self.drag_fd = False
         self.drag_df = False
     
         if self.drag_triangle:
-            # calcul de la valeur correspondant au triangle déplacé
             value_at_triangle = self.minv + self.triangle_fraction * (self.maxv - self.minv)
-            
-            parent_widget = self.parent().parent()
-            action_prog_bar = parent_widget.action_prog_bar
-            action_prog_bar.minv = value_at_triangle
-            action_prog_bar.maxv = value_at_triangle+1
-            print("\n=== DEBUG TRIANGLE ===")
-            #print(f"triangle_fraction = {self.triangle_fraction}")
-            print(f"minv = {action_prog_bar.minv}")
-            print(f"maxv = {action_prog_bar.maxv}")
-            #print(f"value_at_triangle noir = {self.triangle_black_value}")
-            #rint(f"value_at_triangle rouge = {self.triangle_red_value}")
-            print("=====================\n")
-    
-            # mise à jour du label de countdown
-            secs = self._seconds_to_next_change(
-                value_at_triangle,
-                self.minv,
-                self.maxv,
-                unit='hours'
-            )
     
             parent_widget = self.parent()
-            if parent_widget and hasattr(parent_widget, 'countdown_lbl'):
-                parent_widget.countdown_lbl.setText(
-                    parent_widget.seconds_to_text(secs)
-                )
+            main_widget = self.parent().parent()
     
-            # logique triangle cliqué vs déplacé
+            action_prog_bar = getattr(main_widget, "action_prog_bar", None)
+    
+            print("\n=== DEBUG TRIANGLE ===")
+            print(f"value_at_triangle = {value_at_triangle}")
+            print(f"triangle_moved = {self.triangle_moved}")
+            print("=====================\n")
+    
+            # ==============================
+            # 🖱️ CAS 1 : CLICK (pas bougé)
+            # ==============================
             if not self.triangle_moved:
                 self.triangle_clicked = True
-    
-                # mémoriser la valeur du triangle
                 self.triangle_reference_value = value_at_triangle
     
-                # si c'est le premier triangle (noir)
+                # Initialisation du premier triangle
                 if not hasattr(self, 'triangle_black_value') or self.triangle_black_value is None:
                     self.triangle_black_value = value_at_triangle
-                    self.triangle_red_value = value_at_triangle +1
+                    self.triangle_red_value = value_at_triangle + 1
                     self.show_second_triangle = True
-
-                else:
-                    # sinon c'est le rouge
-                    self.triangle_red_value = self.triangle_black_value +1
-                    
-                    start = self.triangle_black_value
-                    end   = self.triangle_red_value
-
-
+    
+                print("CLICK ONLY → aucune modification de la barre")
+    
+            # ==============================
+            # 🖱️ CAS 2 : DRAG (déplacé)
+            # ==============================
             else:
                 self.triangle_clicked = False
     
-            # ✅ gérer la barre d'Action programmée
-            if not self.triangle_moved and hasattr(self, 'triangle_black_value') and hasattr(self, 'triangle_red_value'):
-                parent_widget = self.parent().parent()
-                if parent_widget and hasattr(parent_widget, 'action_prog_bar'):
-                    action_prog_bar = parent_widget.action_prog_bar
-        
+                # Mise à jour des valeurs
+                if hasattr(self, 'triangle_black_value'):
+                    self.triangle_black_value = value_at_triangle
+                    self.triangle_red_value = self.triangle_black_value + 1
+    
+                start = self.triangle_black_value
+                end   = self.triangle_red_value
+    
+                print(f"DRAG → start={start}, end={end}")
+    
+                # Mise à jour de la barre UNIQUEMENT ici
+                if action_prog_bar:
+                    action_prog_bar.minv = start
+                    action_prog_bar.maxv = end
+
+                    # recalage immédiat de la value
                     now = datetime.datetime.now()
                     current_hour = now.hour + now.minute / 60 + now.second / 3600
                     
-                    start = self.triangle_black_value
-                    end   = self.triangle_red_value
-                    action_prog_bar.minv = start
-                    action_prog_bar.maxv = end
-                    
-                    print("\n=== DEBUG TRIANGLE ===")
-                    #print(f"triangle_fraction = {self.triangle_fraction}")
-                    #print(f"minv = {action_prog_bar.minv}")
-                    #print(f"maxv = {action_prog_bar.maxv}")
-                    print(f"value_at_triangle noir = {self.triangle_black_value}")
-                    print(f"value_at_triangle rouge = {self.triangle_red_value}")
-                    print("=====================\n")
-                    
-                    action_prog_bar.elapsed =0
+                    action_prog_bar.value = current_hour
+    
+                    now = datetime.datetime.now()
+                    current_hour = now.hour + now.minute / 60 + now.second / 3600
+    
                     if end > start:
-            
-                        # 🧊 AVANT le début → barre vide
                         if current_hour < start:
                             action_prog_bar.elapsed = 0
-            
                             remaining_seconds = int((start - current_hour) * 3600)
-                            print(f"⏳ Avant start → {remaining_seconds}s")
-            
-                        # 🚀 PENDANT → progression normale
+    
                         elif start <= current_hour <= end:
                             ratio = (current_hour - start) / (end - start)
                             ratio = max(0.0, min(1.0, ratio))
-            
                             action_prog_bar.elapsed = ratio * action_prog_bar.duration
-            
                             remaining_seconds = int((end - current_hour) * 3600)
-                            print(f"▶ En cours → {remaining_seconds}s")
-            
-                        # 🟥 APRÈS → barre pleine
+    
                         else:
                             action_prog_bar.elapsed = action_prog_bar.duration
-            
                             remaining_seconds = 0
-                            print("✅ Terminé")
-            
-                    # démarrer la barre
+    
+                    now = datetime.datetime.now()
+                    current_hour = now.hour + now.minute / 60 + now.second / 3600
+                    
+                    action_prog_bar.value = current_hour
+                    
+                    action_prog_bar._update_phrase(
+                        action_prog_bar.value,
+                        action_prog_bar.minv,
+                        action_prog_bar.maxv
+                    )
+                    
                     action_prog_bar.running = True
                     action_prog_bar.show()
                     action_prog_bar.raise_()
                     action_prog_bar.update()
-                    action_prog_bar.start()
+                    action_prog_bar.start()                    
+                    #
+                    print(f"Barre mise à jour → elapsed={action_prog_bar.elapsed}")
     
+            # ==============================
+            # ⏱️ MAJ COUNTDOWN (toujours ok)
+            # ==============================
+            if parent_widget and hasattr(parent_widget, 'countdown_lbl'):
+                secs = self._seconds_to_next_change(
+                    value_at_triangle,
+                    self.minv,
+                    self.maxv,
+                    unit='hours'
+                )
+                parent_widget.countdown_lbl.setText(
+                    parent_widget.seconds_to_text(secs)
+                )
+    
+        # reset état
         self.drag_triangle = False
         self.triangle_moved = False
+    
         self.update()
 
 #
 class JourCompactWidget(QWidget):
     def __init__(self, bar_widget, stack=None, kind="jour",
-                 vie_dict=None, jour_dict=None, action_dict=None):
+                 vie_dict=None, jour_dict=None, action_dict=None, action_prog_dict=None):
         super().__init__()
         self.bar = bar_widget
         self.stack = stack
@@ -697,6 +694,7 @@ class JourCompactWidget(QWidget):
         self.vie_dict = vie_dict or {}
         self.jour_dict = jour_dict or {}
         self.action_dict = action_dict or {}
+        self.action_prog_dict = action_prog_dict or {}
 
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(2, 2, 2, 2)
@@ -944,8 +942,11 @@ class JourCompactWidget(QWidget):
             self.title_lbl.setText(f"❤️ {now.year}")
         elif self.kind == "jour":
             self.title_lbl.setText("☀️" + now.strftime("%d %b"))
-        else:
+        elif self.kind == "action":
             self.title_lbl.setText("⚡")
+        elif self.kind == "action_prog":
+            self.title_lbl.setText("⚡1")
+
     
         # ── phrase → symboles ──
         phrase = getattr(self.bar, "phrase", "")
@@ -964,8 +965,11 @@ class JourCompactWidget(QWidget):
             text_xml = self.vie_dict.get(phrase, "")
         elif self.kind == "jour":
             text_xml = self.jour_dict.get(phrase, "")
-        else:  # action
+        elif self.kind == "action":
             text_xml = self.action_dict.get(phrase, "")
+        elif self.kind == "action_prog":
+            text_xml = self.action_prog_dict.get(phrase, "")
+
     
         # Mettre à jour le label dédié sous la barre
         self.xml_text_lbl.setText(text_xml)
@@ -1025,7 +1029,7 @@ class JourCompactWidget(QWidget):
             else:
                 secs = 0
                 prefix = "✅"
-            
+            #
             if end > start :
                 ratio = (current_hour - start)/(end-start)
                 ratio = max(0.0,min(1.0, ratio))
@@ -1035,8 +1039,6 @@ class JourCompactWidget(QWidget):
             txt = self.seconds_to_text(secs)
             countdown_text = f"{prefix} {txt}"
             self.countdown_lbl.setText(countdown_text)
-            #print(f"minv = {start}")
-            #print(f"maxv = {end}")
     
     def phrase_to_symbols(self, phrase):
         if not phrase:
@@ -1056,6 +1058,8 @@ class JourCompactWidget(QWidget):
             return self.parent().jour_dict.get(phrase, "")
         elif self.kind == "action":
             return self.parent().action_dict.get(phrase, "")
+        elif self.kind == "action_prog":
+            return self.parent().action_prog_dict.get(phrase, "")
         return ""
 
 # ─────────────────────────────────────────────
@@ -1070,6 +1074,7 @@ class Window(QWidget):
         self.vie_dict   = {}
         self.jour_dict  = {}
         self.action_dict = {}
+        self.action_prog_dict = {}
         self.load_xml("phrases.xml")
 
         # ── Layout principal ──
@@ -1143,6 +1148,13 @@ class Window(QWidget):
             show_triangle=False
         )
         self.action_prog_bar.elapsed = 0
+        
+        self.action_prog_bar._update_phrase(
+            self.action_prog_bar.value,
+            self.action_prog_bar.minv,
+            self.action_prog_bar.maxv
+        )
+        
         self.triangle_black_value = None  # début action programmée
         self.triangle_red_value   = None  # fin action programmée
         self.target_value         = None  # valeur vers laquelle le timer doit aller
@@ -1195,7 +1207,7 @@ class Window(QWidget):
             self.action_prog_bar,
             None,
             kind="action_prog",
-            action_dict=self.action_dict  # ou dictionnaire spécifique si besoin
+            action_prog_dict=self.action_prog_dict  # ou dictionnaire spécifique si besoin
         )
         # Connexion du bouton + du résumé Action programmée
         
@@ -1217,6 +1229,7 @@ class Window(QWidget):
         self.texte_vie    = QLabel("")
         self.texte_jour   = QLabel("")
         self.texte_action = QLabel("")
+        self.texte_action_prog = QLabel("")
 
         for lbl in [self.texte_vie, self.texte_jour, self.texte_action]:
             lbl.setWordWrap(True)
@@ -1262,10 +1275,12 @@ class Window(QWidget):
         vie_text    = self.vie_dict.get(self.vie_bar.phrase,       "Pas de texte vie")
         jour_text   = self.jour_dict.get(self.jour_bar.phrase,     "Pas de texte journée")
         action_text = self.action_dict.get(self.action_bar.phrase, "Pas de texte action")
+        action_prog_text = self.action_prog_dict.get(self.action_prog_bar.phrase, "Pas de texte action prog")
 
         self.texte_vie.setText(vie_text)
         self.texte_jour.setText(jour_text)
         self.texte_action.setText(action_text)
+        self.texte_action_prog.setText(action_prog_text)
 
     # ── Titre dynamique barre vie ──
 
@@ -1416,6 +1431,7 @@ class Window(QWidget):
         _load_section("vie",    self.vie_dict)
         _load_section("jour",   self.jour_dict)
         _load_section("action", self.action_dict)
+        _load_section("action_prog", self.action_prog_dict)
 
     # ── Config barres ──
 
@@ -1425,7 +1441,8 @@ class Window(QWidget):
             root = tree.getroot()
             for tag, bar in [("vie", self.vie_bar),
                               ("jour", self.jour_bar),
-                              ("action", self.action_bar)]:
+                              ("action", self.action_bar),
+                              ("action_prog", self.action_prog_bar)]:
                 el = root.find(tag)
                 if el is not None:
                     bar.fd_fraction = float(el.get("fd", bar.fd_fraction))
@@ -1471,7 +1488,8 @@ class Window(QWidget):
         root = ET.Element("config")
         for tag, bar in [("vie", self.vie_bar),
                          ("jour", self.jour_bar),
-                         ("action", self.action_bar)]:
+                         ("action", self.action_bar),
+                         ("action_prog", self.action_prog_bar)]:
             el = ET.SubElement(root, tag)
             el.set("fd", str(bar.fd_fraction))
             el.set("df", str(bar.df_fraction))
