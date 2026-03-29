@@ -381,7 +381,7 @@ class UnifiedBarWidget(QWidget):
 
         # ── traits verticaux FD / DF ──
         pen = QPen(QColor(0, 0, 0))
-        pen.setWidth(3)
+        pen.setWidth(2)
         painter.setPen(pen)
         painter.drawLine(m1, TEXT_MARGIN, m1, TEXT_MARGIN + BAR_HEIGHT)
         painter.drawLine(m2, TEXT_MARGIN, m2, TEXT_MARGIN + BAR_HEIGHT)
@@ -414,10 +414,16 @@ class UnifiedBarWidget(QWidget):
             )
         
             # ── "1" au-dessus du triangle principal (TOUJOURS visible) ──
-            painter.setFont(QFont("Arial", 10))
+            font = QFont("Arial")
+            font.setPixelSize(12)
+            painter.setFont(font)
             painter.setPen(QColor(0, 0, 0))
-            painter.drawText(center_x - 4, top_y - 2, "1")
-                    
+            
+            fm = painter.fontMetrics()
+            text_width = fm.horizontalAdvance("1")
+            
+            painter.drawText(center_x - text_width // 2, top_y + 3, "1")
+            
             # ── deuxième triangle (+1h) ──
         if self.show_second_triangle and self.triangle_reference_value is not None:
         
@@ -431,7 +437,7 @@ class UnifiedBarWidget(QWidget):
         
             # triangle rouge
             pen = QPen(QColor(200, 0, 0))
-            pen.setWidth(2)
+            #pen.setWidth(2)
             painter.setPen(pen)
             painter.setBrush(QColor(200, 0, 0))
         
@@ -442,7 +448,7 @@ class UnifiedBarWidget(QWidget):
             )
         
             # ── "1" au-dessus du triangle rouge ──
-            painter.setFont(QFont("Arial", 10))
+            #painter.setFont(QFont("Arial", 10))
             painter.setPen(QColor(200, 0, 0))
             painter.drawText(x2 - 4, top_y - 2, "1")
             
@@ -472,7 +478,7 @@ class UnifiedBarWidget(QWidget):
             
                 color = QColor(220, 0, 0) if self.red else QColor(0, 0, 0)
                 painter.setPen(color)
-                painter.setFont(QFont("Arial", 10))
+                #painter.setFont(QFont("Arial", 10))
             
                 painter.drawText(text_x, text_y, time_str)
 
@@ -581,10 +587,8 @@ class UnifiedBarWidget(QWidget):
         parent_widget = self.parent()
         main_widget = self.parent().parent()
         action_prog_bar = getattr(main_widget, "action_prog_bar", None)
-        #
-        # Conversion finale en heures pour action_prog_bar
-        if action_prog_bar:
 
+        if action_prog_bar:
             action_prog_bar._update_phrase(
                 action_prog_bar.value,
                 action_prog_bar.minv,
@@ -691,8 +695,10 @@ class UnifiedBarWidget(QWidget):
 #
 class JourCompactWidget(QWidget):
     def __init__(self, bar_widget, stack=None, kind="jour",
-                 vie_dict=None, jour_dict=None, action_dict=None, action_prog_dict=None):
+                 vie_dict=None, jour_dict=None, action_dict=None, action_prog_dict=None,
+                 controls_mode="full"):
         super().__init__()
+        self.controls_mode = controls_mode  # "full" ou "pause_only"
         self.bar = bar_widget
         self.stack = stack
         self.kind = kind
@@ -782,6 +788,7 @@ class JourCompactWidget(QWidget):
             self.start_btn.clicked.connect(self.bar.start)
             self.pause_btn.clicked.connect(self.bar.pause)
             self.stop_btn.clicked.connect(self.bar.stop)
+        #
 
         # ── Layout principal ──
         self.line_layout.addWidget(self.title_lbl)
@@ -796,9 +803,16 @@ class JourCompactWidget(QWidget):
         self.main_layout.addWidget(self.xml_text_lbl)
 
         if self.bar.mode == "timer":
-            self.line_layout.addWidget(self.start_btn)
-            self.line_layout.addWidget(self.pause_btn)
-            self.line_layout.addWidget(self.stop_btn)
+            # affichage selon le mode
+            if self.controls_mode == "full":
+                self.line_layout.addWidget(self.start_btn)
+                self.line_layout.addWidget(self.pause_btn)
+                self.line_layout.addWidget(self.stop_btn)
+        
+            elif self.controls_mode == "pause_only":
+                self.line_layout.addWidget(self.pause_btn)
+            elif self.controls_mode =="none":
+                pass
 
         self.line_layout.addWidget(self.up_btn)
         self.line_layout.addWidget(self.down_btn)
@@ -908,21 +922,29 @@ class JourCompactWidget(QWidget):
     # ── Affichage barre outils ──
     def toggle_mode(self):
         """Afficher ou cacher uniquement la barre principale et le texte associé."""
-        if self.main_layout.indexOf(self.bar) == -1:
-            self.main_layout.addWidget(self.bar)
-            self.bar.show()
-            self.symbol_text_lbl.show()
-        else:
-            self.main_layout.removeWidget(self.bar)
+    
+        if self.bar.isVisible():
+            # cacher
             self.bar.hide()
             self.symbol_text_lbl.hide()
+            self.plus_btn.setText("+")
+        else:
+            # montrer
+            self.bar.show()
+            self.symbol_text_lbl.show()
+            self.plus_btn.setText("−")
     
+        # Ajuste la fenêtre
+        parent = self.parent()
+        while parent and not hasattr(parent, "ajuster_fenetre"):
+            parent = parent.parent()
+        if parent:
+            parent.ajuster_fenetre()
         # forcer le recalcul de la taille de la fenêtre
         self.adjustSize()
         w = self.window()
         if w:
             w.adjustSize()
-
 
     # ── Navigation stack ──
     def go_up(self):
@@ -1204,26 +1226,30 @@ class Window(QWidget):
         layout.addLayout(jour_col)
 
         self.resume_annee = JourCompactWidget(
-            self.vie_bar, None, "vie", vie_dict=self.vie_dict
+            self.vie_bar, None, "vie", vie_dict=self.vie_dict, controls_mode="none"
         )
+        self.resume_annee.plus_btn.clicked.connect(self.resume_annee.toggle_mode)
         self.resume_jour = JourCompactWidget(
-            self.jour_bar, None, "jour", jour_dict=self.jour_dict
+            self.jour_bar, None, "jour", jour_dict=self.jour_dict, controls_mode="none"
         )
+        self.resume_jour.plus_btn.clicked.connect(self.resume_jour.toggle_mode)
         #
         self.resume_action_prog = JourCompactWidget(
             self.action_prog_bar,
             None,
             kind="action_prog",
-            action_prog_dict=self.action_prog_dict  # ou dictionnaire spécifique si besoin
+            action_prog_dict=self.action_prog_dict,  # ou dictionnaire spécifique si besoin
+            controls_mode="pause_only"
         )
         # Connexion du bouton + du résumé Action programmée
         
         self.resume_action_prog.plus_btn.clicked.connect(self.resume_action_prog.toggle_mode)
         #
         self.resume_action = JourCompactWidget(
-            self.action_bar, None, "action", action_dict=self.action_dict
+            self.action_bar, None, "action", action_dict=self.action_dict,
+            controls_mode="full"
         )
-        
+        self.resume_action.plus_btn.clicked.connect(self.resume_action.toggle_mode)
         jour_col.addWidget(self.resume_annee)
         jour_col.addWidget(self.resume_jour)       
         jour_col.addWidget(self.resume_action_prog)  # <-- le nouveau résumé
