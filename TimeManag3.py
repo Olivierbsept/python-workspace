@@ -799,8 +799,8 @@ class JourCompactWidget(QWidget):
 
         self.xml_text_lbl = QLabel("")
         self.xml_text_lbl.setWordWrap(True)
-        self.xml_text_lbl.setStyleSheet("color: darkblue; font-size:12px;")
-        self.main_layout.addWidget(self.xml_text_lbl)
+        self.xml_text_lbl.setStyleSheet("color: #555555; font-size:12px;")  # gris discret
+        self.xml_text_lbl.setAlignment(Qt.AlignCenter)  # centré sous la barre
 
         if self.bar.mode == "timer":
             # affichage selon le mode
@@ -826,6 +826,8 @@ class JourCompactWidget(QWidget):
         self.update_display()
         
         self.main_layout.addWidget(self.bar)
+        # Phrase XML toujours sous la barre
+        self.main_layout.addWidget(self.xml_text_lbl)
 
     # ── Méthode corrigée pour le bouton '+' ──
     def on_plus_clicked(self):
@@ -1002,13 +1004,13 @@ class JourCompactWidget(QWidget):
     
         # Mettre à jour le label dédié sous la barre
         self.xml_text_lbl.setText(text_xml)
-    
+
         # Affichage texte XML uniquement si la barre est visible
-        if self.main_layout.indexOf(self.bar) != -1 and self.bar.isVisible():
-            self.symbol_text_lbl.setText(text_xml)
-            self.symbol_text_lbl.show()
-        else:
-            self.symbol_text_lbl.hide()
+        # if self.main_layout.indexOf(self.bar) != -1 and self.bar.isVisible():
+        #     self.symbol_text_lbl.setText(text_xml)
+        #     self.symbol_text_lbl.show()
+        # else:
+        #     self.symbol_text_lbl.hide()
     
         # ── calcul temps restant ──
         secs = 0

@@ -1,49 +1,158 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
 <phrases>
 
     <vie>
-        <phrase key="début du début du début">
-            Texte correspondant au début de la vie.
-        </phrase>
-
-        <phrase key="milieu du milieu du début">
-            Texte correspondant au milieu de la vie.
-        </phrase>
-        <phrase key="début du début de la fin">
-            Arrêter de perdre du temps.
-        </phrase>
-        <phrase key="fin de la fin de la fin">
-            Texte correspondant à la fin de la vie.
-        </phrase>
+        <phrase key="début du début du début">Texte correspondant au début de la vie.</phrase>
+        <phrase key="milieu du début du début">Progression lente au début de la vie.</phrase>
+        <phrase key="fin du début du début">Fin des premiers pas.</phrase>
+    
+        <phrase key="début du milieu du début">Transition vers le milieu.</phrase>
+        <phrase key="milieu du milieu du début">Texte correspondant au milieu de la vie.</phrase>
+        <phrase key="fin du milieu du début">Stabilisation en cours.</phrase>
+    
+        <phrase key="début de la fin du début">Premiers signes de maturité.</phrase>
+        <phrase key="milieu de la fin du début">Affirmation personnelle.</phrase>
+        <phrase key="fin de la fin du début">Fin de la phase initiale.</phrase>
+    
+        <phrase key="début du début du milieu">Renouveau.</phrase>
+        <phrase key="milieu du début du milieu">Montée en puissance.</phrase>
+        <phrase key="fin du début du milieu">Élan confirmé.</phrase>
+    
+        <phrase key="début du milieu du milieu">Phase active.</phrase>
+        <phrase key="milieu du milieu du milieu">Cœur de la vie.</phrase>
+        <phrase key="fin du milieu du milieu">Début du ralentissement.</phrase>
+    
+        <phrase key="début de la fin du milieu">Réflexion sur le parcours.</phrase>
+        <phrase key="milieu de la fin du milieu">Maturité avancée.</phrase>
+        <phrase key="fin de la fin du milieu">Préparation au dernier tiers.</phrase>
+    
+        <phrase key="début du début de la fin">Arrêter de perdre du temps.</phrase>
+        <phrase key="milieu du début de la fin">Prise de conscience.</phrase>
+        <phrase key="fin du début de la fin">Virage décisif.</phrase>
+    
+        <phrase key="début du milieu de la fin">Recentrage.</phrase>
+        <phrase key="milieu du milieu de la fin">Essentiel uniquement.</phrase>
+        <phrase key="fin du milieu de la fin">Détachement progressif.</phrase>
+    
+        <phrase key="début de la fin de la fin">Dernière ligne droite.</phrase>
+        <phrase key="milieu de la fin de la fin">Clôture imminente.</phrase>
+        <phrase key="fin de la fin de la fin">Texte correspondant à la fin de la vie.</phrase>
     </vie>
-
+    
     <jour>
-        <phrase key="début du début du début">
-            Texte correspondant au début de la journée.
-        </phrase>
-
-        <phrase key="milieu du milieu du milieu">
-            Texte correspondant au milieu de la journée.
-        </phrase>
-        <phrase key="milieu de la fin de la fin">
-            Remballer.
-        </phrase>
-        <phrase key="fin de la fin de la fin">
-            Texte correspondant à la fin de la journée.
-        </phrase>
+        <phrase key="début du début du début">Texte correspondant au début de la journée.</phrase>
+        <phrase key="milieu du début du début">Mise en route progressive de la journée.</phrase>
+        <phrase key="fin du début du début">Sortie de la phase de démarrage.</phrase>
+        
+        <phrase key="début du milieu du début">Entrée dans le rythme de la matinée.</phrase>
+        <phrase key="milieu du milieu du début">Rythme installé en début de journée.</phrase>
+        <phrase key="fin du milieu du début">Productivité en hausse.</phrase>
+        
+        <phrase key="début de la fin du début">Approche du cœur de la matinée.</phrase>
+        <phrase key="milieu de la fin du début">Concentration optimale.</phrase>
+        <phrase key="fin de la fin du début">Fin de la phase matinale.</phrase>
+        
+        <phrase key="début du début du milieu">Reprise après la pause.</phrase>
+        <phrase key="milieu du début du milieu">Relance de l'activité.</phrase>
+        <phrase key="fin du début du milieu">Retour à un bon niveau d'énergie.</phrase>
+        
+        <phrase key="début du milieu du milieu">Après-midi bien engagée.</phrase>
+        <phrase key="milieu du milieu du milieu">Texte correspondant au milieu de la journée.</phrase>
+        <phrase key="fin du milieu du milieu">Début de la fatigue.</phrase>
+        
+        <phrase key="début de la fin du milieu">Approche de la fin de journée.</phrase>
+        <phrase key="milieu de la fin du milieu">Dernier effort soutenu.</phrase>
+        <phrase key="fin de la fin du milieu">Ralentissement progressif.</phrase>
+        
+        <phrase key="début du début de la fin">Entrée dans la dernière phase.</phrase>
+        <phrase key="milieu du début de la fin">Clôture en préparation.</phrase>
+        <phrase key="fin du début de la fin">Finalisation des tâches.</phrase>
+        
+        <phrase key="début du milieu de la fin">Diminution de l'intensité.</phrase>
+        <phrase key="milieu du milieu de la fin">Organisation de la fin.</phrase>
+        <phrase key="fin du milieu de la fin">Remballer.</phrase>
+        
+        <phrase key="début de la fin de la fin">Derniers instants de la journée.</phrase>
+        <phrase key="milieu de la fin de la fin">Clôture imminente.</phrase>
+        <phrase key="fin de la fin de la fin">Texte correspondant à la fin de la journée.</phrase>
+    
     </jour>
     
+    <action_prog>
+        <phrase key="début du début du début">Texte correspondant au début de l'action programmée.</phrase>
+        <phrase key="milieu du début du début">Mise en route de l'action programmée.</phrase> <phrase key="fin du début du début">Sortie de la phase de lancement.</phrase>
+        
+        <phrase key="début du milieu du début">Entrée dans le rythme de l'action programmée.</phrase>
+        <phrase key="milieu du milieu du début">Rythme stabilisé.</phrase>
+        <phrase key="fin du milieu du début">Montée en efficacité.</phrase>
+        
+        <phrase key="début de la fin du début">Approche de la pleine exécution.</phrase>
+        <phrase key="milieu de la fin du début">Concentration maximale de l'action programmée.</phrase>
+        <phrase key="fin de la fin du début">Fin de la phase initiale de l'action programmée.</phrase>
+        
+        <phrase key="début du début du milieu">Relance structurée.</phrase>
+        <phrase key="milieu du début du milieu">Reprise fluide de l'action programmée.</phrase>
+        <phrase key="fin du début du milieu">Rythme consolidé.</phrase>
+        
+        <phrase key="début du milieu du milieu">Exécution efficace.</phrase>
+        <phrase key="milieu du milieu du milieu">Cœur de l'action programmée.</phrase>
+        <phrase key="fin du milieu du milieu">Premiers signes de fatigue maîtrisée.</phrase>
+        
+        <phrase key="début de la fin du milieu">Approche de la finalisation.</phrase>
+        <phrase key="milieu de la fin du milieu">Dernier effort structuré.</phrase>
+        <phrase key="fin de la fin du milieu">Ralentissement contrôlé.</phrase>
+        
+        <phrase key="début du début de la fin">Entrée dans la phase finale.</phrase>
+        <phrase key="milieu du début de la fin">Clôture en préparation de l'action programmée.</phrase>
+        <phrase key="fin du début de la fin">Finalisation en cours.</phrase>
+        
+        <phrase key="début du milieu de la fin">Réduction progressive de l'effort.</phrase>
+        <phrase key="milieu du milieu de la fin">Organisation de la fin de l'action programmée.</phrase>
+        <phrase key="fin du milieu de la fin">Clôture opérationnelle.</phrase>
+        
+        <phrase key="début de la fin de la fin">Dernières étapes de l'action programmée.</phrase>
+        <phrase key="milieu de la fin de la fin">Finalisation imminente.</phrase>
+        <phrase key="fin de la fin de la fin">Texte correspondant à la fin de l'action programmée.</phrase>
+    </action_prog>
+    
     <action>
-        <phrase key="début du début du début">
-            Texte correspondant au début de la journée.
-        </phrase>
-        <phrase key="milieu du début">Entrer dans le rythme.</phrase>
-        <phrase key="fin du début">Concentration maximale.</phrase>
+        <phrase key="début du début du début">Texte correspondant au début de l'action.</phrase>
+        <phrase key="milieu du début du début">Mise en mouvement de l'action.</phrase>
+        <phrase key="fin du début du début">Sortie de l'hésitation.</phrase>
+    
+        <phrase key="début du milieu du début">Entrée dans le rythme.</phrase>
+        <phrase key="milieu du milieu du début">Rythme qui s'installe.</phrase>
+        <phrase key="fin du milieu du début">Montée en intensité.</phrase>
+        
+        <phrase key="début de la fin du début">Approche de la pleine action.</phrase>
+        <phrase key="milieu de la fin du début">Concentration maximale.</phrase>
+        <phrase key="fin de la fin du début">Fin de la phase de lancement.</phrase>
+        
+        <phrase key="début du début du milieu">Relance de l'action.</phrase>
+        <phrase key="milieu du début du milieu">Retour au flow.</phrase>
+        <phrase key="fin du début du milieu">Rythme retrouvé.</phrase>
+        
+        <phrase key="début du milieu du milieu">Action bien engagée.</phrase>
+        <phrase key="milieu du milieu du milieu">Cœur de l'action.</phrase>
+        <phrase key="fin du milieu du milieu">Premiers signes de fatigue.</phrase>
+        
+        <phrase key="début de la fin du milieu">Approche de la fin de l'effort.</phrase>
+        <phrase key="milieu de la fin du milieu">Dernier effort soutenu.</phrase>
+        <phrase key="fin de la fin du milieu">Ralentissement progressif.</phrase>
+        
+        <phrase key="début du début de la fin">Entrée dans la phase finale.</phrase>
+        <phrase key="milieu du début de la fin">Clôture en préparation.</phrase>
+        <phrase key="fin du début de la fin">Finalisation de l'action.</phrase>
+        
+        <phrase key="début du milieu de la fin">Diminution de l'intensité.</phrase>
+        <phrase key="milieu du milieu de la fin">Organisation de la fin.</phrase>
+        <phrase key="fin du milieu de la fin">Derniers ajustements.</phrase>
+        
+        <phrase key="début de la fin de la fin">Derniers instants de l'action.</phrase>
+        <phrase key="milieu de la fin de la fin">Clôture imminente.</phrase>
+        <phrase key="fin de la fin de la fin">Texte correspondant à la fin de l'action.</phrase>
+    
     </action>
-    <meeting>
-        <phrase key="début du début du début">Réunion dans les débuts</phrase>
-        <phrase key="milieu du début">Réunion en milieu</phrase>
-        <phrase key="fin du début">Réunion presque terminée</phrase>
-    </meeting>
 
 </phrases>
