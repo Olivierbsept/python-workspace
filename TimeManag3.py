@@ -155,6 +155,9 @@ class UnifiedBarWidget(QWidget):
 
         self.setMinimumHeight(BAR_HEIGHT + 2 * TEXT_MARGIN + 20)
         
+        self.dragging_black_triangle = False
+        self.dragging_red_triangle = False
+        
     # ── API publique ──────────────────────────
 
     def set_value(self, value):
@@ -425,10 +428,10 @@ class UnifiedBarWidget(QWidget):
             painter.drawText(center_x - text_width // 2, top_y + 3, "1")
             
             # ── deuxième triangle (+1h) ──
-        if self.show_second_triangle and self.triangle_reference_value is not None:
+        if self.show_second_triangle and self.triangle_red_value is not None:
         
-            value_plus_1h = self.triangle_reference_value + 1.0
-        
+            #value_plus_1h = self.triangle_reference_value + 1.0
+            value_plus_1h = self.triangle_red_value
             if self.maxv != self.minv:
                 ratio = (value_plus_1h - self.minv) / (self.maxv - self.minv)
                 x2 = int(ratio * width)
@@ -514,12 +517,34 @@ class UnifiedBarWidget(QWidget):
             val_df = self.minv + self.df_fraction * (self.maxv - self.minv)
             return f"{val_fd:.2f}", f"{val_df:.2f}"
 
+    #
+    def update_from_triangles(self):
+        main_widget = self.parent().parent()
+        action_prog_bar = getattr(main_widget, "action_prog_bar", None)
+        if self.triangle_black_value is not None and self.triangle_red_value is not None:
+            action_prog_bar.minv = self.triangle_black_value
+            action_prog_bar.maxv = self.triangle_red_value
+    #
+    def update_duration_text(self):
+        if self.triangle_black_value is None or self.triangle_red_value is None:
+            self.duration_text = ""
+            return
+    
+        duration = self.triangle_red_value - self.triangle_black_value
+    
+        hours = int(duration)
+        minutes = int((duration - hours) * 60)
+    
+        self.duration_text = f"{hours}h{minutes:02d}"
+    #
     # ── Souris ───────────────────────────────
 
     def mousePressEvent(self, event):
         width = self.width()
         m1    = int(width * self.fd_fraction)
         m2    = int(width * self.df_fraction)
+        x = event.pos().x()
+        width = self.width()
         if abs(event.x() - m1) < 10:
             self.drag_fd = True
         elif abs(event.x() - m2) < 10:
@@ -537,6 +562,29 @@ class UnifiedBarWidget(QWidget):
                 self.drag_triangle = True
                 self.triangle_moved = False
                 self.triangle_press_x = event.x()  # mémorise position initiale
+        
+        #
+        # position triangle noir
+        if self.triangle_black_value is not None:
+            ratio = (self.triangle_black_value - self.minv) / (self.maxv - self.minv)
+            black_x = int(ratio * width)
+        else:
+            black_x = None
+
+        # position triangle rouge
+        if self.triangle_red_value is not None:
+            ratio = (self.triangle_red_value - self.minv) / (self.maxv - self.minv)
+            red_x = int(ratio * width)
+        else:
+            red_x = None
+        
+        threshold = 10  # zone cliquable en pixels
+        
+        if red_x is not None and abs(x - red_x) < threshold:
+            self.dragging_red_triangle = True
+        
+        elif black_x is not None and abs(x - black_x) < threshold:
+            self.dragging_black_triangle = True
                 
     def mouseMoveEvent(self, event):
         width = self.width()
@@ -576,11 +624,42 @@ class UnifiedBarWidget(QWidget):
                 self.triangle_clicked = False  # déplacement → évidé
         
             self.update()
-
+        #
+        x = event.pos().x()
+        width = self.width()
+        
+        ratio = x / width
+        value = self.minv + ratio * (self.maxv - self.minv)
+        
+        # clamp
+        value = max(self.minv, min(self.maxv, value))
+          
+        if self.dragging_red_triangle:
+            self.triangle_red_value = value
+            self.update_from_triangles()
+            self.update_duration_text()
+            self.update()
+        
+        elif self.dragging_black_triangle:
+            self.triangle_black_value = value
+        
+            # garder une durée cohérente
+            if self.triangle_red_value is not None:
+                duration = self.triangle_red_value - self.triangle_black_value
+                if duration <= 0:
+                    self.triangle_red_value = self.triangle_black_value + 0.1
+            
+            self.update_from_triangles()
+            self.update_duration_text()
+            self.update()
+       
+        # 
+        
     def mouseReleaseEvent(self, event):
         print("NEW start =", self.minv)
         print("NEW end   =", self.maxv)
-    
+        self.dragging_red_triangle = False
+        self.dragging_black_triangle = False
         self.drag_fd = False
         self.drag_df = False
         
@@ -610,7 +689,7 @@ class UnifiedBarWidget(QWidget):
                     self.triangle_black_value = value_at_triangle
                     self.triangle_red_value = value_at_triangle + 1
                     self.show_second_triangle = True
-    
+                self.show_second_triangle = True
                 print("CLICK ONLY → aucune modification de la barre")
     
             # ==============================
@@ -668,7 +747,7 @@ class UnifiedBarWidget(QWidget):
                     action_prog_bar.show()
                     action_prog_bar.raise_()
                     action_prog_bar.update()
-                    action_prog_bar.start()                    
+                    action_prog_bar.start()       
                     #
                     print(f"Barre mise à jour → elapsed={action_prog_bar.elapsed}")
     
@@ -828,7 +907,13 @@ class JourCompactWidget(QWidget):
         self.main_layout.addWidget(self.bar)
         # Phrase XML toujours sous la barre
         self.main_layout.addWidget(self.xml_text_lbl)
-
+        #
+        self.duration_lbl = QLabel("")
+        self.duration_lbl.setAlignment(Qt.AlignCenter)
+        self.duration_lbl.setStyleSheet("color: #888888; font-size:11px;")
+        
+        self.main_layout.addWidget(self.duration_lbl)
+        #
     # ── Méthode corrigée pour le bouton '+' ──
     def on_plus_clicked(self):
         """
@@ -1004,13 +1089,6 @@ class JourCompactWidget(QWidget):
     
         # Mettre à jour le label dédié sous la barre
         self.xml_text_lbl.setText(text_xml)
-
-        # Affichage texte XML uniquement si la barre est visible
-        # if self.main_layout.indexOf(self.bar) != -1 and self.bar.isVisible():
-        #     self.symbol_text_lbl.setText(text_xml)
-        #     self.symbol_text_lbl.show()
-        # else:
-        #     self.symbol_text_lbl.hide()
     
         # ── calcul temps restant ──
         secs = 0
@@ -1070,6 +1148,10 @@ class JourCompactWidget(QWidget):
             txt = self.seconds_to_text(secs)
             countdown_text = f"{prefix} {txt}"
             self.countdown_lbl.setText(countdown_text)
+        #
+            if hasattr(self.bar, "duration_text"):
+                self.duration_lbl.setText(self.bar.duration_text)
+        #
     
     def phrase_to_symbols(self, phrase):
         if not phrase:
