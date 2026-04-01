@@ -1564,6 +1564,12 @@ class Window(QWidget):
                 if el is not None:
                     bar.fd_fraction = float(el.get("fd", bar.fd_fraction))
                     bar.df_fraction = float(el.get("df", bar.df_fraction))
+                #
+                if tag == "action_prog":
+                    if hasattr(self.jour_bar, "triangle_black_value") and self.jour_bar.triangle_black_value is not None:
+                        el.set("start", str(self.jour_bar.triangle_black_value))
+                    if hasattr(self.jour_bar, "triangle_red_value") and self.jour_bar.triangle_red_value is not None:
+                        el.set("end", str(self.jour_bar.triangle_red_value))
             # dates de vie
             vie_el = root.find("vie")
             if vie_el is not None:
@@ -1598,6 +1604,31 @@ class Window(QWidget):
                 if duree_str:
                     self.action_bar.duration = int(duree_str) * 60
                     self.action_titre_lbl.setText(self._action_titre())
+            #
+            action_prog_el = root.find("action_prog")
+            if action_prog_el is not None:
+                start_str = action_prog_el.get("start")
+                end_str   = action_prog_el.get("end")
+            
+                def hhmm_to_float(s):
+                    h, m = map(int, s.split(":"))
+                    return h + m / 60.0
+                #
+                if start_str and end_str:
+                    start = hhmm_to_float(start_str)
+                    end   = hhmm_to_float(end_str)
+                
+                    self.jour_bar.triangle_black_value = start
+                    self.jour_bar.triangle_red_value   = end
+                    self.jour_bar.show_second_triangle = True
+                
+                    # 🔥 POSITION VISUELLE CORRECTE
+                    if self.jour_bar.maxv != self.jour_bar.minv:
+                        ratio = (start - self.jour_bar.minv) / (self.jour_bar.maxv - self.jour_bar.minv)
+                        self.jour_bar.triangle_fraction = ratio
+                
+                    self.jour_bar.triangle_clicked = True
+                #       
         except Exception:
             pass
 
@@ -1610,6 +1641,18 @@ class Window(QWidget):
             el = ET.SubElement(root, tag)
             el.set("fd", str(bar.fd_fraction))
             el.set("df", str(bar.df_fraction))
+            #
+            if tag == "action_prog":
+                if self.jour_bar.triangle_black_value is not None:
+                    h = int(self.jour_bar.triangle_black_value)
+                    m = int((self.jour_bar.triangle_black_value - h) * 60)
+                    el.set("start", f"{h:02d}:{m:02d}")
+            
+                if self.jour_bar.triangle_red_value is not None:
+                    h = int(self.jour_bar.triangle_red_value)
+                    m = int((self.jour_bar.triangle_red_value - h) * 60)
+                    el.set("end", f"{h:02d}:{m:02d}")
+            #
         # dates de vie
         vie_el = root.find("vie")
         vie_el.set("naissance", self.vie_date_naissance.toString("yyyy-MM-dd"))

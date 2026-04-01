@@ -3,7 +3,7 @@
 <phrases>
 
     <vie>
-        <phrase key="début du début du début">Texte correspondant au début de la vie.</phrase>
+        <phrase key="début du début du début">C'est parti, la vie.</phrase>
         <phrase key="milieu du début du début">Progression lente au début de la vie.</phrase>
         <phrase key="fin du début du début">Fin des premiers pas.</phrase>
     
@@ -37,11 +37,11 @@
     
         <phrase key="début de la fin de la fin">Dernière ligne droite.</phrase>
         <phrase key="milieu de la fin de la fin">Clôture imminente.</phrase>
-        <phrase key="fin de la fin de la fin">Texte correspondant à la fin de la vie.</phrase>
+        <phrase key="fin de la fin de la fin">The End.</phrase>
     </vie>
     
     <jour>
-        <phrase key="début du début du début">Texte correspondant au début de la journée.</phrase>
+        <phrase key="début du début du début">C'est parti, la journée.</phrase>
         <phrase key="milieu du début du début">Mise en route progressive de la journée.</phrase>
         <phrase key="fin du début du début">Sortie de la phase de démarrage.</phrase>
         
@@ -58,7 +58,7 @@
         <phrase key="fin du début du milieu">Retour à un bon niveau d'énergie.</phrase>
         
         <phrase key="début du milieu du milieu">Après-midi bien engagée.</phrase>
-        <phrase key="milieu du milieu du milieu">Texte correspondant au milieu de la journée.</phrase>
+        <phrase key="milieu du milieu du milieu">Coeur de la journée</phrase>
         <phrase key="fin du milieu du milieu">Début de la fatigue.</phrase>
         
         <phrase key="début de la fin du milieu">Approche de la fin de journée.</phrase>
@@ -75,12 +75,12 @@
         
         <phrase key="début de la fin de la fin">Derniers instants de la journée.</phrase>
         <phrase key="milieu de la fin de la fin">Clôture imminente.</phrase>
-        <phrase key="fin de la fin de la fin">Texte correspondant à la fin de la journée.</phrase>
+        <phrase key="fin de la fin de la fin">This is the end.</phrase>
     
     </jour>
     
     <action_prog>
-        <phrase key="début du début du début">Texte correspondant au début de l'action programmée.</phrase>
+        <phrase key="début du début du début">C'est parti pour l'action programmée.</phrase>
         <phrase key="milieu du début du début">Mise en route de l'action programmée.</phrase> <phrase key="fin du début du début">Sortie de la phase de lancement.</phrase>
         
         <phrase key="début du milieu du début">Entrée dans le rythme de l'action programmée.</phrase>
@@ -113,11 +113,11 @@
         
         <phrase key="début de la fin de la fin">Dernières étapes de l'action programmée.</phrase>
         <phrase key="milieu de la fin de la fin">Finalisation imminente.</phrase>
-        <phrase key="fin de la fin de la fin">Texte correspondant à la fin de l'action programmée.</phrase>
+        <phrase key="fin de la fin de la fin">C'est la fin de l'action programmée.</phrase>
     </action_prog>
     
     <action>
-        <phrase key="début du début du début">Texte correspondant au début de l'action.</phrase>
+        <phrase key="début du début du début">C'est parti pour l'action.</phrase>
         <phrase key="milieu du début du début">Mise en mouvement de l'action.</phrase>
         <phrase key="fin du début du début">Sortie de l'hésitation.</phrase>
     
@@ -151,7 +151,7 @@
         
         <phrase key="début de la fin de la fin">Derniers instants de l'action.</phrase>
         <phrase key="milieu de la fin de la fin">Clôture imminente.</phrase>
-        <phrase key="fin de la fin de la fin">Texte correspondant à la fin de l'action.</phrase>
+        <phrase key="fin de la fin de la fin">Terminé.</phrase>
     
     </action>
 
