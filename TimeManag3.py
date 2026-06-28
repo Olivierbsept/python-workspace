@@ -15,9 +15,7 @@ from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
                              QDateEdit, QTimeEdit, QSpinBox, QDialog, QDialogButtonBox, QCalendarWidget)
 from PyQt5.QtCore import QTimer, Qt, QDate, QTime
 from PyQt5.QtGui import QPainter, QColor, QFont, QPen
-from PyQt5 import QtMultimedia
 from PyQt5.QtCore import QPoint
-from PyQt5.QtGui import QPolygon
 
 
 BAR_HEIGHT    = 30
@@ -904,6 +902,8 @@ class JourCompactWidget(QWidget):
         self.timer.start(500)
         self.update_display()
         
+        
+        
         self.main_layout.addWidget(self.bar)
         # Phrase XML toujours sous la barre
         self.main_layout.addWidget(self.xml_text_lbl)
@@ -1158,10 +1158,15 @@ class JourCompactWidget(QWidget):
             return ""
     
         words = phrase.replace(" de la ", " ").replace(" du ", " ").split()
-        words = words[::-1]  # inversion de l'ordre
+        words = words[::-1]
     
-        mapping = {"fin": "□", "milieu": "...", "début": "▲"}
-        return "".join([mapping.get(w, "") for w in words])
+        mapping = {
+            "fin": "□",
+            "milieu": "••<span style='color:red'>•</span>",
+            "début": "▲"
+        }
+    
+        return "".join(mapping.get(w, "") for w in words)
     
     def phrase_to_text(self, phrase):
         """Retourne le texte XML correspondant à la phrase."""
